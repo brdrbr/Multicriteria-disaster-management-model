@@ -106,19 +106,20 @@ for t in nT:
         sum1 = 0
         sum2 = 0
 
-"""for t in nT:
+for t in nT:
     for k in nK:
         for i in nI:
+            sum1 = 0
+            sum2 = 0
             for e in nE:
-                sum1 = 0
-                sum2 = 0
-                if i + D == Cijkt[0 + e*3 + k*3*E + t*3*E*T]:
-                    sum1 = sum1 + Model.X[e, k, t]
-                if i + D == Cijkt[1 + e*3 + k*3*E + t*3*E*T]:
-                    sum2 = sum2 + Model.X[e, k, t]
+                if i + D == Cijkt[0 + e * 3 + k * 3 * E + t * 3 * E * T]:
+                    sum1 += Model.X[e, k, t]
+                if i + D == Cijkt[1 + e * 3 + k * 3 * E + t * 3 * E * T]:
+                    sum2 += Model.X[e, k, t]
+
         Model.c1.add(sum1 - sum2 == 0)
         sum1 = 0
-        sum2 = 0"""
+        sum2 = 0
 
 for k in nK:
     for d in nD:
