@@ -1,5 +1,5 @@
 from pyomo.environ import *
-from utils import *
+from utils_node import *
 
 
 # Supply nodes for commodity k

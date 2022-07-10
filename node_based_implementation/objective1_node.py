@@ -1,4 +1,4 @@
-from variables import *
+from node_based_implementation.declaration_node import *
 from pyomo.opt import SolverFactory
 
 
