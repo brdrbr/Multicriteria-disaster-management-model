@@ -1,4 +1,4 @@
-from edge_based_decleration.declaration_edge import *
+from edge_based_implementation.declaration_edge import *
 from pyomo.opt import SolverFactory
 
 Model = ConcreteModel()
