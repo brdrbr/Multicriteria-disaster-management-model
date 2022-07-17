@@ -3,19 +3,19 @@ import numpy as np
 import pandas as pd
 
 N = 6  # INPUT
-nN = RangeSet(0, N - 1)
+nN = RangeSet(0, N - 1)  # total of 6 nodes
 E = 11  # INPUT
-nE = RangeSet(0, E - 1)
+nE = RangeSet(0, E - 1)  # total of 11 edges
 K = 2  # INPUT
-nK = RangeSet(0, K - 1)
+nK = RangeSet(0, K - 1)  # total of 2 commodities
 T = 2  # INPUT
-nT = RangeSet(0, T - 1)
+nT = RangeSet(0, T - 1)  # total of 2 time periods
 D = 2  # INPUT
-nD = RangeSet(0, D - 1)
+nD = RangeSet(0, D - 1)  # total of 2 demand nodes
 S = 2  # INPUT
-nS = RangeSet(0, S - 1)
+nS = RangeSet(0, S - 1)  # total of 2 supply nodes
 I = N - D - S
-nI = RangeSet(0, I - 1)
+nI = RangeSet(0, I - 1)  # total of 2 intermediate nodes
 
 Ik = [1, 1, 0, 0, 0, 0,
       1, 1, 0, 0, 0, 0]  # supply matrix INPUT
@@ -74,43 +74,43 @@ alpha = 2  # penalty factor for unsatisfied demand
 Model.obj = Objective(
     expr=sum(Cijkt[2 + e * 3 + k * 3 * E + t * 3 * E * T] * Model.X[e, k, t] for e in nE for k in nK for t in nT))
 
-# Model.obj = Objective(expr=sum((Model.D[d, k, t] - Model.H[d, k, t])*math.e**(alpha*t) for d in nD for k in nK for t in nT), sense=maximize)
-# Model.obj =
 
 Model.c1 = ConstraintList()
 for t in nT:
     for k in nK:
+        sum1 = 0
+        sum2 = 0
         for s in nS:
-            sum1 = 0
-            sum2 = 0
             for e in nE:
-                if s == Cijkt[0 + e * 3 + k * 3 * E + t * 3 * E * T]:
+                print(Cijkt[(0 + e * 3 + k * 3 * E + t * 3 * E * T)-1])
+
+                if s == Cijkt[(0 + e * 3 + k * 3 * E + t * 3 * E * T)-1]:
                     sum1 = sum1 + Model.X[e, k, t]
                 if s == Cijkt[1 + e * 3 + k * 3 * E + t * 3 * E * T]:
                     sum2 = sum2 + Model.X[e, k, t]
+
         Model.c1.add(sum1 - sum2 == Sikt[s + k * S + t * S * K])
-        sum1 = 0
-        sum2 = 0
 
 for t in nT:
     for k in nK:
         for d in nD:
+            sum1 = 0
+            sum2 = 0
             for e in nE:
-                sum1 = 0
-                sum2 = 0
+
                 if d + N - D == Cijkt[0 + e * 3 + k * 3 * E + t * 3 * E * T]:
                     sum1 = sum1 + Model.X[e, k, t]
                 if d + N - D == Cijkt[1 + e * 3 + k * 3 * E + t * 3 * E * T]:
                     sum2 = sum2 + Model.X[e, k, t]
         Model.c1.add(sum2 - sum1 + Model.H[d, k, t] == Model.D[d, k, t])
-        sum1 = 0
-        sum2 = 0
+
 
 for t in nT:
     for k in nK:
+        sum1 = 0
+        sum2 = 0
         for i in nI:
-            sum1 = 0
-            sum2 = 0
+
             for e in nE:
                 if i + D == Cijkt[0 + e * 3 + k * 3 * E + t * 3 * E * T]:
                     sum1 += Model.X[e, k, t]
@@ -118,8 +118,7 @@ for t in nT:
                     sum2 += Model.X[e, k, t]
 
         Model.c1.add(sum1 - sum2 == 0)
-        sum1 = 0
-        sum2 = 0
+
 
 for k in nK:
     for d in nD:

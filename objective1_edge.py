@@ -4,7 +4,6 @@ Created on Thu Jul 14 06:08:17 2022
 
 @author: Computer1
 """
-
 from declaration_edge import *
 from pyomo.opt import SolverFactory
 
@@ -15,24 +14,18 @@ Model = ConcreteModel()
 Model.X = Var(nE, nK, nT, within=NonNegativeReals)
 for t in nT:
     for k in nK:
-        Model.X[11, k ,t] = 0
-        Model.X[22, k ,t] = 0
-        Model.X[33, k ,t] = 0
-        Model.X[44, k ,t] = 0
-        Model.X[55, k ,t] = 0
-        Model.X[66, k ,t] = 0
+        Model.X[11, k, t] = 0
+        Model.X[22, k, t] = 0
+        Model.X[33, k, t] = 0
+        Model.X[44, k, t] = 0
+        Model.X[55, k, t] = 0
+        Model.X[66, k, t] = 0
 
 # Demand of commodity k at node j in period t
 Model.D = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
-"""Model.D[1] = djkt[0][0][1]
-Model.D[2] = djkt[0][0][2]
-Model.D[3] = djkt[0][0][3]
-Model.D[4] = djkt[0][0][4]
-Model.D[5] = djkt[0][0][5]
-Model.D[6] = djkt[0][0][6]"""  # i believe that this is unneccessary due to constraint 4
 
 # Unsatisfied demand of commodity k at node j in period t
-Model.H = Var(nD, nK, nT, xbounds=(0, 0), within=NonNegativeReals)  # 0 for t-1 = 0 case.
+Model.H = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)  # 0 for t-1 = 0 case.
 for k in nK:
     Model.H[1, k, 0] = 0
     Model.H[2, k, 0] = 0
@@ -79,14 +72,14 @@ out = 0
 for t in nT:
     for k in nK:
         for e in nS:  # for all supply nodes
-            if Sikt[t][k][e-1] > 0:
+            if Sikt[t][k][e] > 0:
                 for i in edge_dict.keys():
-                    if int(str(i)[:-1]) == e-1:
+                    if int(str(i)[:-1]) == e:
                         into += Model.X[i, k, t]
-                    if int(str(i)[1:2]) == e-1:
+                    if int(str(i)[1:2]) == e:
                         out += Model.X[i, k, t]
         
-                Model.c1.add(into - out == Sikt[t][k][e-1])
+                Model.c1.add(into - out == Sikt[t][k][e])
                 into = 0
                 out = 0
 
@@ -97,14 +90,14 @@ out = 0
 for t in nT:
     for k in nK:
         for e in nD:  # for all demand nodes
-            if djkt[t][k][e-1] > 0:
+            if djkt[t][k][e] > 0:
                 for i in edge_dict.keys():
-                    if int(str(i)[:-1]) == e-1:
+                    if int(str(i)[:-1]) == e:
                         out += Model.X[i, k, t]
-                    if int(str(i)[1:2]) == e-1:
+                    if int(str(i)[1:2]) == e:
                         into += Model.X[i, k, t]
         
-                Model.c1.add(into - out + Model.H[e-1, k, t] == Model.D[e-1, k, t])
+                Model.c1.add(into - out + Model.H[e, k, t] == Model.D[e, k, t])
                 into = 0
                 out = 0
 
@@ -113,83 +106,104 @@ for t in nT:
 for t in nT:
     for k in nK:
         for e in nN:  # for all transition nodes ( neither supply nor demand )
-            if Sikt[t][k][e-1] == 0 and djkt[t][k][e-1] == 0:
+            if Sikt[t][k][e] == 0 and djkt[t][k][e] == 0:
                 for i in edge_dict.keys():
-                    if int(str(i)[:-1]) == e-1:
+                    if int(str(i)[:-1]) == e:
                         out += Model.X[i, k, t]
-                    if int(str(i)[1:2]) == e-1:
+                    if int(str(i)[1:2]) == e:
                         into += Model.X[i, k, t]
         
                 Model.c1.add(into - out == 0)
                 into = 0
                 out = 0
 
+
 # CONSTRAINT 4
 for t in nT:
     for k in nK:
         for d in nD:
-            Model.c1.add(Model.D[d, k, t] == Model.H[d, k, t] + djkt[t][k][d-1])
+            if t == 0:
+                Model.c1.add(Model.H[d, k, t] == 0)
+                Model.c1.add(Model.D[d, k, t] == djkt[t][k][d])
+            else:
+                Model.c1.add(Model.D[d, k, t] == Model.H[d, k, t-1] + djkt[t][k][d])
 
-
-#MODIFIED CONSTRAINTS TILL HERE
 
 # REMOVING BLOCKED ARCS FOR CONSTRAINTS 5 AND 6
 capacities = []
-for i in uijt[0][0]:
-    for e in nS:
-        for k in nD:
-            if int(str(i[0])[:-1]) == e and int(str(i[0])[1:2]) == k:
-                capacities.append(i[1])
+for t in nT:
+    for i in uijt[0][t]:
+        for s in nS:
+            for d in nD:
+                if int(str(i[0])[:-1]) == s and int(str(i[0])[1:2]) == d:
+                    capacities.append(i[1])
+
 
 # CONSTRAINT 5
-for index, i in enumerate(uijt[0][0]):
-    if i[1] != 0:  # its not blocked
-        Model.c1.add(Model.X[i[0]] <= capacities[index])
+for t in nT:
+    for k in nK:
+        for index, i in enumerate(uijt[0][t]):
+            if i[1] != 0:  # its not blocked
+                Model.c1.add(Model.X[i[0], k, t] <= capacities[index])
 
 # CONSTRAINT 6
-for index, i in enumerate(uijt[0][0]):
-    if i[1] == 0:  # its blocked
-        Model.c1.add(Model.X[i[0]] <= capacities[index] * Model.Y[i[0]])
+for t in nT:
+    for k in nK:
+        for index, i in enumerate(uijt[0][0]):
+            if i[1] == 0:  # its blocked
+                Model.c1.add(Model.X[i[0], k, t] <= capacities[i[1]] * Model.Y[i[0], t])
+
 
 # CONSTRAINT 7
 origin_list = []
 destination_list = []
-for index, i in enumerate(uijt[0][0]):
-    if i[1] == 0:  # its blocked
-        origin_list.append(int(str(i[0])[:-1]))
-        destination_list.append(int(str(i[0])[1:2]))
+time_list = []
+for t in nT:
+    for index, i in enumerate(uijt[0][0]):
+        if i[1] == 0:  # its blocked
+            origin_list.append(int(str(i[0])[:-1]))
+            destination_list.append(int(str(i[0])[1:2]))
+            time_list.append(t)
 
-Model.c1.add(sum(Model.W[int(str(o)+str(d))] for (o, d) in zip(origin_list, destination_list)) <= sum([bt[0][a][1] for a in range(len(bt[0]))]))
+Model.c1.add(sum(Model.W[int(str(o)+str(d)), t] for (o, d, t) in zip(origin_list, destination_list, time_list)) <= sum([bt[0][a][1] for a in range(len(bt[0]))]))
+
 
 # CONSTRAINT 8
 origin_list = []
 destination_list = []
+time_list = []
 blocked_indexes = []
 counter = 0
-for index, i in enumerate(uijt[0][0]):
-    if i[1] == 0:  # its blocked
-        origin_list.append(int(str(i[0])[:-1]))
-        destination_list.append(int(str(i[0])[1:2]))
-        blocked_indexes.append(counter)
-        Model.c1.add(Model.W[i[0]] >= aij[0][0][counter][1] * Model.Y[i[0]])
-        counter += 1
+for t in nT:
+    for index, i in enumerate(uijt[0][t]):
+        if i[1] == 0:  # its blocked
+            origin_list.append(int(str(i[0])[:-1]))
+            destination_list.append(int(str(i[0])[1:2]))
+            time_list.append(t)
+            blocked_indexes.append(counter)
+            Model.c1.add(Model.W[i[0], t] >= aij[counter][1] * Model.Y[i[0], t])
+            counter += 1
 
 # CONSTRAINT 9
-for index, i in enumerate(uijt[0][0]):
-    if i[1] == 0:
-        Model.c1.add(Model.X[int(str(i[0]))] >= 0)
-        Model.c1.add(Model.D[int(str(i[0])[1:2])] >= 0)
-        Model.c1.add(Model.H[int(str(i[0])[1:2])] >= 0)
+for t in nT:
+    for k in nK:
+        for index, i in enumerate(uijt[0][t]):
+            if i[1] == 0:
+                Model.c1.add(Model.X[int(str(i[0])),k ,t] >= 0)
+                Model.c1.add(Model.D[int(str(i[0])[1:2]),k ,t] >= 0)
+                Model.c1.add(Model.H[int(str(i[0])[1:2]),k ,t] >= 0)
 
 counter = 0
-for index, i in enumerate(uijt[0][0]):
-    if i[1] != 0:
-        if counter == 2:
-            break
-        Model.c1.add(Model.X[int(str(i[0]))] >= 0)
-        Model.c1.add(Model.D[int(str(i[0])[1:2])] >= 0)
-        Model.c1.add(Model.H[int(str(i[0])[1:2])] >= 0)
-        counter += 1
+for t in nT:
+    for k in nK:
+        for index, i in enumerate(uijt[0][t]):
+            if i[1] != 0:
+                if counter == 2:
+                    break
+                Model.c1.add(Model.X[int(str(i[0])),k ,t] >= 0)
+                Model.c1.add(Model.D[int(str(i[0])[1:2]),k ,t] >= 0)
+                Model.c1.add(Model.H[int(str(i[0])[1:2]),k ,t] >= 0)
+                counter += 1
 
 Model.obj.pprint()
 Model.c1.pprint()
