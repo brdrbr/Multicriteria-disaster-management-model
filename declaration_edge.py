@@ -1,13 +1,12 @@
 from pyomo.environ import *
-from utils_edge import *
+import numpy as np
 
 
 #OLD VERSION
-"""
+
 nS = RangeSet(1, 6)  # supply nodes ( I included transition & demand nodes here but gave them 0 supply )
 nD = RangeSet(1, 6)  # demand nodes ( I included transition & supply nodes here but gave them 0 demand )
 nN = RangeSet(1, 6)  # all nodes
-
 # Mapping edges with their origin-destination node pairs
 # keys represent edge number e, values represent the [origin,destination] routes.
 edge_dict = {11: [1, 1], 12: [1, 2],
@@ -28,33 +27,26 @@ edge_dict = {11: [1, 1], 12: [1, 2],
              61: [6, 1], 62: [6, 2],
              63: [6, 3], 64: [6, 4],
              65: [6, 5], 66: [6, 6]}
-
 nE = list(edge_dict.keys())  # list of edges
-
 # Set of blocked roads
 # arc a
 B = [14, 23]
-
 # Time periods - only 2
 nT = RangeSet(0, 1)
-
 # Commodities - only 2
 nK = RangeSet(0, 1)
-
 # Newly arrived supply of commodity k at supply node i in period t example units: 5 = 500 litres of water
 # (supply node, supply amount) - will be extended for all commodities and all time periods
 Sikt = [[{1: 8, 2: 15, 3: 0, 4: 0, 5: 0, 6: 0}, #comm 1 tp 1
         {1: 8, 2: 15, 3: 0, 4: 0, 5: 0, 6: 0}], #comm 2 tp 1
         [{1: 8, 2: 15, 3: 0, 4: 0, 5: 0, 6: 0}, #comm 1 tp 2
         {1: 8, 2: 15, 3: 0, 4: 0, 5: 0, 6: 0}]] #comm 2 tp 2
-
 # Newly arising demand of commodity k at node j in period t - will be extended for all commodities and all time periods
 # (demand node, demand amount)
 djkt = [[{1: 0, 2: 0, 3: 15, 4: 8, 5: 0, 6: 0}, #comm 1 tp 1
          {1: 0, 2: 0, 3: 15, 4: 8, 5: 0, 6: 0}],#comm 2 tp 1
         [{1: 0, 2: 0, 3: 15, 4: 8, 5: 0, 6: 0}, #comm 1 tp 2
         {1: 0, 2: 0, 3: 15, 4: 8, 5: 0, 6: 0}]] #comm 2 tp 2
-
 # (origin, destination, cost of travel time) - will be extended for all commodities and all time periods
 Cijkt = [[[[11, 0], [12, 10], [13, 8], [14, 2], [15, 2], [16, 2],
            [21, 1], [22, 0], [23, 3], [24, 9], [25, 2], [26, 2],
@@ -85,7 +77,6 @@ Cijkt = [[[[11, 0], [12, 10], [13, 8], [14, 2], [15, 2], [16, 2],
            [61, 3], [62, 1], [63, 1], [64, 2], [65, 2], [66, 0]
            ]]]  # comm2 tp 1 & comm2 tp 2
 # Unit travel time on arc [i,j] for commodity k in period t
-
 # Capacity of arc [i,j] in period t [zero, if arc [i,j] is blocked at time t]
 # no need to extend this for the commodities right???
 uijt = [
@@ -107,9 +98,7 @@ uijt = [
           [51, 10], [52, 5], [53, 8], [54, 2], [55, 0], [56, 4],
           [61, 10], [62, 5], [63, 8], [64, 2], [65, 10], [66, 0]
          ]
-
        ]  # comm2 tp 1 & comm2 tp 2
-
 # Blocked arc or not
 # [from, to, blocked/not blocked] Blocked = 0 for a time period t
 blocked = [[[11, 1], [12, 1], [13, 1], [14, 0], [15, 1], [16, 1],
@@ -125,10 +114,7 @@ blocked = [[[11, 1], [12, 1], [13, 1], [14, 0], [15, 1], [16, 1],
             [41, 1], [42, 1], [43, 1], [44, 1], [45, 1], [46, 1],
             [51, 1], [52, 1], [53, 1], [54, 1], [55, 1], [56, 1],
             [61, 1], [62, 1], [63, 1], [64, 1], [65, 1], [66, 1]]]  # comm2 tp 1 & comm2 tp 2
-
 #uijt = update_blocked_capacities(uijt, blocked, nT)
-
-
 # [blocked road origin, blocked road destination, units of road restoration resources in period t]
 bt = [[[11, 0], [12, 0], [13, 0], [14, 12], [15, 1], [16, 2],
        [21, 0], [22, 0], [23, 12], [24, 0], [25, 1], [26, 2],
@@ -142,7 +128,6 @@ bt = [[[11, 0], [12, 0], [13, 0], [14, 12], [15, 1], [16, 2],
        [41, 0], [42, 0], [43, 0], [44, 0], [45, 1], [46, 2],
        [51, 0], [52, 0], [53, 0], [54, 0], [55, 0], [56, 2],
        [61, 0], [62, 0], [63, 0], [64, 0], [65, 1], [66, 0]]]
-
 # Number of resources needed to restore blocked arc (i,j)
 aij = [[11, 8], [12, 8], [13, 8], [14, 8], [15, 8], [16, 8],
         [21, 8], [22, 8], [23, 8], [24, 8], [25, 8], [26, 8],
@@ -153,10 +138,9 @@ aij = [[11, 8], [12, 8], [13, 8], [14, 8], [15, 8], [16, 8],
 #depend on time or commodity right ???
 #Yes, it is ok. I think it is not time-dependent. If it is, we can add brackets like the previous ones.
 
-"""
 
 #NEW VERSION
-
+"""
 from pyomo.environ import *
 from utils_edge import *
 
