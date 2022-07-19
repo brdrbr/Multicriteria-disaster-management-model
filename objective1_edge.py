@@ -9,7 +9,6 @@ from pyomo.opt import SolverFactory
 
 Model = ConcreteModel()
 
-
 # Amount of commodity k sent on arc e in period t
 Model.X = Var(nE, nK, nT, within=NonNegativeReals)
 for t in nT:
@@ -166,33 +165,33 @@ for t in nT:
             destination_list.append(int(str(i[0])[1:2]))
             time_list.append(t)
 
-Model.c1.add(sum(Model.W[int(str(o)+str(d)), t] for (o, d, t) in zip(origin_list, destination_list, time_list)) <= sum([bt[0][a][1] for a in range(len(bt[0]))]))
-
+Model.c1.add(sum(Model.W[int(str(o)+str(d)), t] for (o, d, t) in zip(origin_list, destination_list, time_list)) <= sum([bt[t][a][1] for a in range(len(bt[t]))]))
 
 # CONSTRAINT 8
-origin_list = []
-destination_list = []
-time_list = []
-blocked_indexes = []
-counter = 0
 for t in nT:
+    origin_list = []
+    destination_list = []
+    time_list = []
+    blocked_indexes = []
+    counter = 0
     for index, i in enumerate(uijt[t]):
         if i[1] == 0:  # its blocked
             origin_list.append(int(str(i[0])[:-1]))
             destination_list.append(int(str(i[0])[1:2]))
             time_list.append(t)
             blocked_indexes.append(counter)
-            Model.c1.add(Model.W[i[0], t] >= aij[counter][1] * Model.Y[i[0], t])
             counter += 1
+
+    Model.c1.add(sum(Model.W[int(str(o)+str(d)), t] for (o, d) in zip(origin_list, destination_list)) >= sum(aij[counter][1] * Model.Y[int(str(o)+str(d)), t] for (o, d) in zip(origin_list, destination_list)))
 
 # CONSTRAINT 9
 for t in nT:
     for k in nK:
         for index, i in enumerate(uijt[t]):
             if i[1] == 0:
-                Model.c1.add(Model.X[int(str(i[0])),k ,t] >= 0)
-                Model.c1.add(Model.D[int(str(i[0])[1:2]),k ,t] >= 0)
-                Model.c1.add(Model.H[int(str(i[0])[1:2]),k ,t] >= 0)
+                Model.c1.add(Model.X[int(str(i[0])), k, t] >= 0)
+                Model.c1.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
+                Model.c1.add(Model.H[int(str(i[0])[1:2]), k, t] >= 0)
 
 counter = 0
 for t in nT:
@@ -201,9 +200,9 @@ for t in nT:
             if i[1] != 0:
                 if counter == 2:
                     break
-                Model.c1.add(Model.X[int(str(i[0])),k ,t] >= 0)
-                Model.c1.add(Model.D[int(str(i[0])[1:2]),k ,t] >= 0)
-                Model.c1.add(Model.H[int(str(i[0])[1:2]),k ,t] >= 0)
+                Model.c1.add(Model.X[int(str(i[0])), k, t] >= 0)
+                Model.c1.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
+                Model.c1.add(Model.H[int(str(i[0])[1:2]), k, t] >= 0)
                 counter += 1
 
 Model.obj.pprint()
