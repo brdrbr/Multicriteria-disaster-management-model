@@ -138,6 +138,7 @@ for t in nT:
                 if int(str(i[0])[:-1]) == s and int(str(i[0])[1:2]) == d:
                     capacities.append(i[1])
 
+print(capacities)
 
 # CONSTRAINT 5
 for t in nT:
