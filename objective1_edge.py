@@ -132,7 +132,7 @@ for t in nT:
 # REMOVING BLOCKED ARCS FOR CONSTRAINTS 5 AND 6
 capacities = []
 for t in nT:
-    for i in uijt[0][t]:
+    for i in uijt[t]:
         for s in nS:
             for d in nD:
                 if int(str(i[0])[:-1]) == s and int(str(i[0])[1:2]) == d:
@@ -142,14 +142,14 @@ for t in nT:
 # CONSTRAINT 5
 for t in nT:
     for k in nK:
-        for index, i in enumerate(uijt[0][t]):
+        for index, i in enumerate(uijt[t]):
             if i[1] != 0:  # its not blocked
                 Model.c1.add(Model.X[i[0], k, t] <= capacities[index])
 
 # CONSTRAINT 6
 for t in nT:
     for k in nK:
-        for index, i in enumerate(uijt[0][0]):
+        for index, i in enumerate(uijt[t]):
             if i[1] == 0:  # its blocked
                 Model.c1.add(Model.X[i[0], k, t] <= capacities[i[1]] * Model.Y[i[0], t])
 
@@ -159,7 +159,7 @@ origin_list = []
 destination_list = []
 time_list = []
 for t in nT:
-    for index, i in enumerate(uijt[0][0]):
+    for index, i in enumerate(uijt[t]):
         if i[1] == 0:  # its blocked
             origin_list.append(int(str(i[0])[:-1]))
             destination_list.append(int(str(i[0])[1:2]))
@@ -175,7 +175,7 @@ time_list = []
 blocked_indexes = []
 counter = 0
 for t in nT:
-    for index, i in enumerate(uijt[0][t]):
+    for index, i in enumerate(uijt[t]):
         if i[1] == 0:  # its blocked
             origin_list.append(int(str(i[0])[:-1]))
             destination_list.append(int(str(i[0])[1:2]))
@@ -187,7 +187,7 @@ for t in nT:
 # CONSTRAINT 9
 for t in nT:
     for k in nK:
-        for index, i in enumerate(uijt[0][t]):
+        for index, i in enumerate(uijt[t]):
             if i[1] == 0:
                 Model.c1.add(Model.X[int(str(i[0])),k ,t] >= 0)
                 Model.c1.add(Model.D[int(str(i[0])[1:2]),k ,t] >= 0)
@@ -196,7 +196,7 @@ for t in nT:
 counter = 0
 for t in nT:
     for k in nK:
-        for index, i in enumerate(uijt[0][t]):
+        for index, i in enumerate(uijt[t]):
             if i[1] != 0:
                 if counter == 2:
                     break
