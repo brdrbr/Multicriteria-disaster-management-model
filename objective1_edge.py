@@ -137,8 +137,6 @@ for t in nT:
                 if int(str(i[0])[:-1]) == s and int(str(i[0])[1:2]) == d:
                     capacities.append(i[1])
 
-print(capacities)
-
 # CONSTRAINT 5
 for t in nT:
     for k in nK:
@@ -169,20 +167,9 @@ Model.c1.add(sum(Model.W[int(str(o)+str(d)), t] for (o, d, t) in zip(origin_list
 
 # CONSTRAINT 8
 for t in nT:
-    origin_list = []
-    destination_list = []
-    time_list = []
-    blocked_indexes = []
-    counter = 0
-    for index, i in enumerate(uijt[t]):
+    for index, i in enumerate(uijt[t]):  # aij shape: 36
         if i[1] == 0:  # its blocked
-            origin_list.append(int(str(i[0])[:-1]))
-            destination_list.append(int(str(i[0])[1:2]))
-            time_list.append(t)
-            blocked_indexes.append(counter)
-            counter += 1
-
-    Model.c1.add(sum(Model.W[int(str(o)+str(d)), t] for (o, d) in zip(origin_list, destination_list)) >= sum(aij[counter][1] * Model.Y[int(str(o)+str(d)), t] for (o, d) in zip(origin_list, destination_list)))
+            Model.c1.add(sum(Model.W[i[0], t2] for t2 in nT) >= aij[i[0]] * Model.Y[i[0], t])
 
 # CONSTRAINT 9
 for t in nT:
