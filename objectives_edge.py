@@ -5,6 +5,7 @@ Created on Thu Jul 14 06:08:17 2022
 """
 from declaration_edge import *
 from pyomo.opt import SolverFactory
+import math
 
 Model = ConcreteModel()
 
@@ -74,6 +75,18 @@ for t in nT:
 # Sense = 1 is maximizing
 Model.obj = Objective(expr=objective, sense=-1)
 Model.c1 = ConstraintList()"""
+
+"""
+# Z Declaration
+Model.Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
+# OBJECTIVE 2
+objective = Model.Z
+Model.obj = Objective(expr=objective, sense=-1)
+Model.c1 = ConstraintList()
+# CONSTRAINT 0 for objective 3
+alpha = 1
+for d in nD:
+    Model.c1.add( Model.Z <= sum(Model.D[d, k, t] - Model.H[d, k, t] * math.exp((-alpha)*t) for k in nK for t in nT))"""
 
 # CONSTRAINT 1
 into = 0
@@ -149,18 +162,15 @@ for t in nT:
 
 # CONSTRAINT 5
 for t in nT:
-    for k in nK:
-        for index, i in enumerate(uijt[t]):
-            if i[1] != 0:  # its not blocked
-                Model.c1.add(Model.X[i[0], k, t] <= capacities[index])
+    for index, i in enumerate(uijt[t]):
+        if i[1] != 0:  # its not blocked
+            Model.c1.add(sum(Model.X[i[0], k, t] for k in nK) <= capacities[index])
 
 # CONSTRAINT 6
 for t in nT:
-    for k in nK:
-        for index, i in enumerate(uijt[t]):
-            if i[1] == 0:  # its blocked
-                Model.c1.add(Model.X[i[0], k, t] <= capacities[i[1]] * Model.Y[i[0], t])
-
+    for index, i in enumerate(uijt[t]):
+        if i[1] == 0:  # its blocked
+            Model.c1.add(sum(Model.X[i[0], k, t] for k in nK) <= capacities[i[1]] * Model.Y[i[0], t])
 
 # CONSTRAINT 7
 origin_list = []
@@ -172,14 +182,15 @@ for t in nT:
             origin_list.append(int(str(i[0])[:-1]))
             destination_list.append(int(str(i[0])[1:2]))
             time_list.append(t)
-
-Model.c1.add(sum(Model.W[int(str(o)+str(d)), t] for (o, d, t) in zip(origin_list, destination_list, time_list)) <= sum([bt[t][a][1] for a in range(len(bt[t]))]))
+for t in nT:
+    Model.c1.add(sum(Model.W[int(str(o)+str(d)), t] for (o, d) in zip(origin_list, destination_list)) <= bt[t])
 
 # CONSTRAINT 8
 for t in nT:
+    nT2 = RangeSet(0, t)
     for index, i in enumerate(uijt[t]):  # aij shape: 36
         if i[1] == 0:  # its blocked
-            Model.c1.add(sum(Model.W[i[0], t2] for t2 in nT) >= aij[i[0]] * Model.Y[i[0], t])
+            Model.c1.add(sum(Model.W[i[0], t2] for t2 in nT2) >= aij[i[0]] * Model.Y[i[0], t])
 
 # CONSTRAINT 9
 for t in nT:
