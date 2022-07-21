@@ -116,18 +116,7 @@ blocked = [[[11, 1], [12, 1], [13, 1], [14, 0], [15, 1], [16, 1],
             [61, 1], [62, 1], [63, 1], [64, 1], [65, 1], [66, 1]]]  # comm2 tp 1 & comm2 tp 2
 #uijt = update_blocked_capacities(uijt, blocked, nT)
 # [blocked road origin, blocked road destination, units of road restoration resources in period t]
-bt = [[[11, 0], [12, 0], [13, 0], [14, 12], [15, 1], [16, 2],
-       [21, 0], [22, 0], [23, 12], [24, 0], [25, 1], [26, 2],
-       [31, 0], [32, 0], [33, 0], [34, 0], [35, 1], [36, 2],
-       [41, 0], [42, 0], [43, 0], [44, 0], [45, 1], [46, 2],
-       [51, 0], [52, 0], [53, 0], [54, 0], [55, 0], [56, 2],
-       [61, 0], [62, 0], [63, 0], [64, 0], [65, 1], [66, 0]],
-      [[11, 0], [12, 0], [13, 0], [14, 12], [15, 1], [16, 2],
-       [21, 0], [22, 0], [23, 12], [24, 0], [25, 1], [26, 2],
-       [31, 0], [32, 0], [33, 0], [34, 0], [35, 1], [36, 2],
-       [41, 0], [42, 0], [43, 0], [44, 0], [45, 1], [46, 2],
-       [51, 0], [52, 0], [53, 0], [54, 0], [55, 0], [56, 2],
-       [61, 0], [62, 0], [63, 0], [64, 0], [65, 1], [66, 0]]]
+bt = [12, 12]
 # Number of resources needed to restore blocked arc (i,j)
 aij = {11: 8, 12: 8, 13: 8, 14: 8, 15: 8, 16: 8,
         21: 8, 22: 8, 23: 8, 24: 8, 25: 8, 26: 8,
@@ -207,21 +196,8 @@ blocked = [[[11, 1], [12, 1], [13, 1], [14, 0], [15, 1], [16, 1],
 #uijt = update_blocked_capacities(uijt, blocked, nT)  #how to change this based on time ??? we need to insert the right uijt[][]
 #changed this as well
 # [blocked road origin, blocked road destination, units of road restoration resources in period t]
-bt = [[[11, 0], [12, 0], [13, 0], [14, 12], [15, 1], [16, 2],
-       [21, 0], [22, 0], [23, 12], [24, 0], [25, 1], [26, 2],
-       [31, 0], [32, 0], [33, 0], [34, 0], [35, 1], [36, 2],
-       [41, 0], [42, 0], [43, 0], [44, 0], [45, 1], [46, 2],
-       [51, 0], [52, 0], [53, 0], [54, 0], [55, 0], [56, 2],
-       [61, 0], [62, 0], [63, 0], [64, 0], [65, 1], [66, 0]]]
+bt = [12]
 #uijt = update_blocked_capacities(uijt, blocked, nT)  #how to change this based on time ??? we need to insert the right uijt[][]
-#changed this as well
-# [blocked road origin, blocked road destination, units of road restoration resources in period t]
-bt = [[[11, 0], [12, 0], [13, 0], [14, 12], [15, 1], [16, 2],
-       [21, 0], [22, 0], [23, 12], [24, 0], [25, 1], [26, 2],
-       [31, 0], [32, 0], [33, 0], [34, 0], [35, 1], [36, 2],
-       [41, 0], [42, 0], [43, 0], [44, 0], [45, 1], [46, 2],
-       [51, 0], [52, 0], [53, 0], [54, 0], [55, 0], [56, 2],
-       [61, 0], [62, 0], [63, 0], [64, 0], [65, 1], [66, 0]]]
 # Number of resources needed to restore blocked arc (i,j)
 aij = {11: 8, 12: 8, 13: 8, 14: 8, 15: 8, 16: 8,
         21: 8, 22: 8, 23: 8, 24: 8, 25: 8, 26: 8,
