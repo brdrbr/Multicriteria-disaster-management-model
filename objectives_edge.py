@@ -54,7 +54,7 @@ for t in nT:
     Model.Y[66, t] = 0
 
 # OBJECTIVE 1
-objective = 0
+"""objective = 0
 for t in nT:
     for k in nK:
         for i in Cijkt[t][k]:
@@ -63,7 +63,7 @@ for t in nT:
                     objective += i[1]*Model.X[e, k, t]
 # Sense = 1 is minimizing
 Model.obj = Objective(expr=objective, sense=1)
-Model.c1 = ConstraintList()
+Model.c1 = ConstraintList()"""
 
 # OBJECTIVE 2
 """alpha = 1
@@ -76,7 +76,7 @@ for t in nT:
 Model.obj = Objective(expr=objective, sense=-1)
 Model.c1 = ConstraintList()"""
 
-"""
+
 # Z Declaration
 Model.Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
 # OBJECTIVE 2
@@ -86,7 +86,7 @@ Model.c1 = ConstraintList()
 # CONSTRAINT 0 for objective 3
 alpha = 1
 for d in nD:
-    Model.c1.add( Model.Z <= sum(Model.D[d, k, t] - Model.H[d, k, t] * math.exp((-alpha)*t) for k in nK for t in nT))"""
+    Model.c1.add( Model.Z <= sum(Model.D[d, k, t] - Model.H[d, k, t] * math.exp((-alpha)*t) for k in nK for t in nT))
 
 # CONSTRAINT 1
 into = 0
@@ -160,11 +160,13 @@ for t in nT:
                 if int(str(i[0])[:-1]) == s and int(str(i[0])[1:2]) == d:
                     capacities.append(i[1])
 
+
 # CONSTRAINT 5
 for t in nT:
-    for index, i in enumerate(uijt[t]):
-        if i[1] != 0:  # its not blocked
-            Model.c1.add(sum(Model.X[i[0], k, t] for k in nK) <= capacities[index])
+    for k in nK:
+        for index, i in enumerate(uijt[t]):
+            if i[1] != 0:  # its not blocked
+                Model.c1.add(Model.X[i[0], k, t] <= capacities[index])
 
 # CONSTRAINT 6
 for t in nT:
