@@ -8,17 +8,6 @@ from pyomo.opt import SolverFactory
 
 Model = ConcreteModel()
 
-# OBJECTIVE 2
-"""alpha = 1
-objective = 0
-for t in nT:
-    for k in nK:
-        for d in nD:
-            objective += (Model.D[d, k, t] - Model.H[d, k, t]) * math.exp((-alpha)*t)
-# Sense = 1 is maximizing
-Model.obj = Objective(expr=objective, sense=-1)
-Model.c1 = ConstraintList()"""
-
 # Amount of commodity k sent on arc e in period t
 Model.X = Var(nE, nK, nT, within=NonNegativeReals)
 for t in nT:
@@ -63,7 +52,7 @@ for t in nT:
     Model.Y[55, t] = 0
     Model.Y[66, t] = 0
 
-# OBJECTIVE
+# OBJECTIVE 1
 objective = 0
 for t in nT:
     for k in nK:
@@ -74,6 +63,17 @@ for t in nT:
 # Sense = 1 is minimizing
 Model.obj = Objective(expr=objective, sense=1)
 Model.c1 = ConstraintList()
+
+# OBJECTIVE 2
+"""alpha = 1
+objective = 0
+for t in nT:
+    for k in nK:
+        for d in nD:
+            objective += (Model.D[d, k, t] - Model.H[d, k, t]) * math.exp((-alpha)*t)
+# Sense = 1 is maximizing
+Model.obj = Objective(expr=objective, sense=-1)
+Model.c1 = ConstraintList()"""
 
 # CONSTRAINT 1
 into = 0
@@ -147,8 +147,6 @@ for t in nT:
                 if int(str(i[0])[:-1]) == s and int(str(i[0])[1:2]) == d:
                     capacities.append(i[1])
 
-print(capacities)
-
 # CONSTRAINT 5
 for t in nT:
     for k in nK:
@@ -175,33 +173,22 @@ for t in nT:
             destination_list.append(int(str(i[0])[1:2]))
             time_list.append(t)
 
-Model.c1.add(sum(Model.W[int(str(o)+str(d)), t] for (o, d, t) in zip(origin_list, destination_list, time_list)) <= sum([bt[0][a][1] for a in range(len(bt[0]))]))
-
+Model.c1.add(sum(Model.W[int(str(o)+str(d)), t] for (o, d, t) in zip(origin_list, destination_list, time_list)) <= sum([bt[t][a][1] for a in range(len(bt[t]))]))
 
 # CONSTRAINT 8
-origin_list = []
-destination_list = []
-time_list = []
-blocked_indexes = []
-counter = 0
 for t in nT:
-    for index, i in enumerate(uijt[t]):
+    for index, i in enumerate(uijt[t]):  # aij shape: 36
         if i[1] == 0:  # its blocked
-            origin_list.append(int(str(i[0])[:-1]))
-            destination_list.append(int(str(i[0])[1:2]))
-            time_list.append(t)
-            blocked_indexes.append(counter)
-            Model.c1.add(Model.W[i[0], t] >= aij[counter][1] * Model.Y[i[0], t])
-            counter += 1
+            Model.c1.add(sum(Model.W[i[0], t2] for t2 in nT) >= aij[i[0]] * Model.Y[i[0], t])
 
 # CONSTRAINT 9
 for t in nT:
     for k in nK:
         for index, i in enumerate(uijt[t]):
             if i[1] == 0:
-                Model.c1.add(Model.X[int(str(i[0])),k ,t] >= 0)
-                Model.c1.add(Model.D[int(str(i[0])[1:2]),k ,t] >= 0)
-                Model.c1.add(Model.H[int(str(i[0])[1:2]),k ,t] >= 0)
+                Model.c1.add(Model.X[int(str(i[0])), k, t] >= 0)
+                Model.c1.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
+                Model.c1.add(Model.H[int(str(i[0])[1:2]), k, t] >= 0)
 
 counter = 0
 for t in nT:
@@ -210,9 +197,9 @@ for t in nT:
             if i[1] != 0:
                 if counter == 2:
                     break
-                Model.c1.add(Model.X[int(str(i[0])),k ,t] >= 0)
-                Model.c1.add(Model.D[int(str(i[0])[1:2]),k ,t] >= 0)
-                Model.c1.add(Model.H[int(str(i[0])[1:2]),k ,t] >= 0)
+                Model.c1.add(Model.X[int(str(i[0])), k, t] >= 0)
+                Model.c1.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
+                Model.c1.add(Model.H[int(str(i[0])[1:2]), k, t] >= 0)
                 counter += 1
 
 Model.obj.pprint()
