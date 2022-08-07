@@ -4,6 +4,7 @@ Created on Thu Jul 14 06:08:17 2022
 @author: Computer1
 """
 from declaration_edge import *
+#from dataread import *
 from pyomo.opt import SolverFactory
 import math
 
@@ -52,9 +53,9 @@ for t in nT:
     Model.Y[44, t] = 0
     Model.Y[55, t] = 0
     Model.Y[66, t] = 0
-
+"""
 # OBJECTIVE 1
-"""objective = 0
+objective = 0
 for t in nT:
     for k in nK:
         for i in Cijkt[t][k]:
@@ -63,10 +64,11 @@ for t in nT:
                     objective += i[1]*Model.X[e, k, t]
 # Sense = 1 is minimizing
 Model.obj = Objective(expr=objective, sense=1)
-Model.c1 = ConstraintList()"""
-
+Model.c1 = ConstraintList()
+"""
+"""
 # OBJECTIVE 2
-"""alpha = 1
+alpha = 1
 objective = 0
 for t in nT:
     for k in nK:
@@ -74,19 +76,20 @@ for t in nT:
             objective += (Model.D[d, k, t] - Model.H[d, k, t]) * math.exp((-alpha)*t)
 # Sense = 1 is maximizing
 Model.obj = Objective(expr=objective, sense=-1)
-Model.c1 = ConstraintList()"""
-
+Model.c1 = ConstraintList()
+"""
 
 # Z Declaration
 Model.Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
-# OBJECTIVE 2
+# OBJECTIVE 3
 objective = Model.Z
 Model.obj = Objective(expr=objective, sense=-1)
 Model.c1 = ConstraintList()
 # CONSTRAINT 0 for objective 3
 alpha = 1
-for d in nD:
-    Model.c1.add( Model.Z <= sum(Model.D[d, k, t] - Model.H[d, k, t] * math.exp((-alpha)*t) for k in nK for t in nT))
+for d in nD:  # for all demand nodes
+    if djkt[t][k][d] > 0:  
+        Model.c1.add( Model.Z <= sum(Model.D[d, k, t] - Model.H[d, k, t] * math.exp((-alpha)*t) for k in nK for t in nT))
 
 # CONSTRAINT 1
 into = 0
@@ -160,13 +163,11 @@ for t in nT:
                 if int(str(i[0])[:-1]) == s and int(str(i[0])[1:2]) == d:
                     capacities.append(i[1])
 
-
 # CONSTRAINT 5
 for t in nT:
-    for k in nK:
-        for index, i in enumerate(uijt[t]):
-            if i[1] != 0:  # its not blocked
-                Model.c1.add(Model.X[i[0], k, t] <= capacities[index])
+    for index, i in enumerate(uijt[t]):
+        if i[1] != 0:  # its not blocked
+            Model.c1.add(sum(Model.X[i[0], k, t] for k in nK) <= capacities[index])
 
 # CONSTRAINT 6
 for t in nT:
@@ -224,4 +225,6 @@ Msolution = opt.solve(Model)
 # Display solution
 print(Msolution)
 print('\nMinimum total travel time = ', Model.obj())
-print(Model.X.display())
+#print(Model.X.display())
+print(Model.D.display())
+#print(Model.Z.display())
