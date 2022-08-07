@@ -129,7 +129,7 @@ aij = {11: 8, 12: 8, 13: 8, 14: 8, 15: 8, 16: 8,
 
 
 #NEW VERSION
-"""
+'''
 from pyomo.environ import *
 from utils_edge import *
 nS = RangeSet(1, 6)  # supply nodes ( I included transition & demand nodes here but gave them 0 supply )
@@ -205,4 +205,5 @@ aij = {11: 8, 12: 8, 13: 8, 14: 8, 15: 8, 16: 8,
         41: 8, 42: 8, 43: 8, 44: 8, 45: 8, 46: 8,
         51: 8, 52: 8, 53: 8, 54: 8, 55: 8, 56: 8,
         61: 8, 62: 8, 63: 8, 64: 8, 65: 8, 66: 8}  #I deleted the extra brackets here since in the model this does not
-#depend on time or commodity right ???"""
+#depend on time or commodity right ???
+'''
