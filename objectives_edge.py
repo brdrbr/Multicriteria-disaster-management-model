@@ -7,6 +7,8 @@ from declaration_edge import *
 #from dataread import *
 from pyomo.opt import SolverFactory
 import math
+import networkx as nx
+import matplotlib.pyplot as plt
 
 Model = ConcreteModel()
 
@@ -53,7 +55,7 @@ for t in nT:
     Model.Y[44, t] = 0
     Model.Y[55, t] = 0
     Model.Y[66, t] = 0
-"""
+
 # OBJECTIVE 1
 objective = 0
 for t in nT:
@@ -65,7 +67,7 @@ for t in nT:
 # Sense = 1 is minimizing
 Model.obj = Objective(expr=objective, sense=1)
 Model.c1 = ConstraintList()
-"""
+
 """
 # OBJECTIVE 2
 alpha = 1
@@ -78,7 +80,7 @@ for t in nT:
 Model.obj = Objective(expr=objective, sense=-1)
 Model.c1 = ConstraintList()
 """
-
+"""
 # Z Declaration
 Model.Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
 # OBJECTIVE 3
@@ -90,7 +92,7 @@ alpha = 1
 for d in nD:  # for all demand nodes
     if djkt[t][k][d] > 0:  
         Model.c1.add( Model.Z <= sum(Model.D[d, k, t] - Model.H[d, k, t] * math.exp((-alpha)*t) for k in nK for t in nT))
-
+"""
 # CONSTRAINT 1
 into = 0
 out = 0
@@ -213,7 +215,6 @@ for t in nT:
                     break
                 Model.c1.add(Model.X[int(str(i[0])), k, t] >= 0)
                 Model.c1.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
-                Model.c1.add(Model.H[int(str(i[0])[1:2]), k, t] >= 0)
                 counter += 1
 
 Model.obj.pprint()
@@ -225,6 +226,32 @@ Msolution = opt.solve(Model)
 # Display solution
 print(Msolution)
 print('\nMinimum total travel time = ', Model.obj())
-#print(Model.X.display())
-print(Model.D.display())
+print(Model.X.display())
+#print(Model.D.display())
 #print(Model.Z.display())
+counter = 1
+periodcounter = 1
+commoditycounter = 1
+edgelabeldictionary = {}
+for i in nT:
+    for j in nK:
+        G = nx.Graph()
+        for k in nS:
+            G.add_node(str(k))
+        for k in nS:
+            for key, value in Model.X.get_values().items():
+                if str(key[0])[0] == str(k) and str(key[1]) == str(i) and str(key[2]) == str(j):
+                    if value != 0.0:
+                        G.add_edge(str(k), str(key[0])[1], weight = str(value))
+                        edgelabeldictionary[k, int(str(key[0])[1])] = str(value)
+        plt.figure(counter)
+        plt.title("Period: " + str(periodcounter) + " Commodity: " + str(commoditycounter))
+        pos = nx.spring_layout(G)
+        nx.draw(G, pos, with_labels=True, arrows = True)
+        nx.draw_networkx_edge_labels(G, pos, edge_labels = nx.get_edge_attributes(G, 'weight'),label_pos=0.5,  rotate=False, font_size=8)
+        commoditycounter = commoditycounter+  1
+        counter = counter + 1
+    commoditycounter = 1
+    periodcounter = periodcounter +  1
+plt.show()
+print(Model.X.get_values())
