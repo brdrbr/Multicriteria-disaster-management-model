@@ -55,8 +55,14 @@ for t in nT:
     Model.Y[44, t] = 0
     Model.Y[55, t] = 0
     Model.Y[66, t] = 0
-
+"optimize 1 first, katsayi 1/1000, lexographic, weightlerle sum,scaling objective functoins,scalleri kontrol et"
+"optimize1, get the best results for ibj 2 and 3, input network, hangi arclar bloke ve de ne kadar kaldi acilmasina"
+"mantikli sonuc veremiycekdata input"
+"3 objective degerleri 1 cozum runda"
+"her time period icin discount satisfied demand, tabloya dok"
+"3. objectivei olusturan nodelarin degerleri"
 # OBJECTIVE 1
+"""
 objective = 0
 for t in nT:
     for k in nK:
@@ -67,7 +73,7 @@ for t in nT:
 # Sense = 1 is minimizing
 Model.obj = Objective(expr=objective, sense=1)
 Model.c1 = ConstraintList()
-
+"""
 """
 # OBJECTIVE 2
 alpha = 1
@@ -80,7 +86,7 @@ for t in nT:
 Model.obj = Objective(expr=objective, sense=-1)
 Model.c1 = ConstraintList()
 """
-"""
+
 # Z Declaration
 Model.Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
 # OBJECTIVE 3
@@ -92,7 +98,11 @@ alpha = 1
 for d in nD:  # for all demand nodes
     if djkt[t][k][d] > 0:  
         Model.c1.add( Model.Z <= sum(Model.D[d, k, t] - Model.H[d, k, t] * math.exp((-alpha)*t) for k in nK for t in nT))
-"""
+"high demand at a specific node, make it easy to "
+"her commodity icin demand pointlerin demandinin yuzde kaci satisfy edilmis + how much demand"
+
+"objective 3 degisiminden sonra 3 time period 1 commodity"
+
 # CONSTRAINT 1
 into = 0
 out = 0
@@ -222,13 +232,13 @@ Model.c1.pprint()
 
 opt = SolverFactory('glpk')
 Msolution = opt.solve(Model)
-
+""""supply demand node renkleri farkli yap, transhipment nodes"""
 # Display solution
 print(Msolution)
 print('\nMinimum total travel time = ', Model.obj())
-print(Model.X.display())
+#print(Model.X.display())
 #print(Model.D.display())
-#print(Model.Z.display())
+print(Model.Z.display())
 counter = 1
 periodcounter = 1
 commoditycounter = 1
@@ -254,4 +264,4 @@ for i in nT:
     commoditycounter = 1
     periodcounter = periodcounter +  1
 plt.show()
-print(Model.X.get_values())
+print(Model.Z.get_values())
