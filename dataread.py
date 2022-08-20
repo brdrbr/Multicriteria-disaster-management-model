@@ -40,7 +40,7 @@ for i in range(T):
     for j in range(K):
         Sikt[i].append({})
         for k in range(N):
-            Sikt[i][j][k+1] = df.iloc[ 1 + 6*(k), 3 + j + i*2]
+            Sikt[i][j][k+1] = df.iloc[ 1 + 6*(k), 3 + j + i*K]
 
 djkt = []
 for i in range(T):
@@ -48,7 +48,7 @@ for i in range(T):
     for j in range(K):
         djkt[i].append({})
         for k in range(N):
-            djkt[i][j][k+1] = df.iloc[ 1 + 6*(k), 3 + T*K + j + i*2]
+            djkt[i][j][k+1] = df.iloc[ 1 + 6*(k), 3 + T*K + j + i*K]
 
 dummy = []
 for i in range(1,N+1):
@@ -62,7 +62,7 @@ for i in range(T):
         for k in range(N*N):
             Cijkt[i][j].append([])
             Cijkt[i][j][k].append(dummy[k])
-            Cijkt[i][j][k].append(df.iloc[ 1 + k, 3 + T*K*2 + j + i*2])
+            Cijkt[i][j][k].append(df.iloc[ 1 + k, 3 + T*K*2 + j + i*K])
             
 uijt = []
 for i in range(T):
