@@ -15,7 +15,7 @@ import pandas as pd
 import matplotlib as pylab
 import numpy as np
 
-for l in range(0, 1):
+for l in range(0, 3):
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
     Model.X = Var(nE, nK, nT, within=NonNegativeReals)
