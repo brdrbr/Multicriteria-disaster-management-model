@@ -85,9 +85,6 @@ bt2 = [12, 12]
 bt = []
 for i in range(T):
     bt.append(df.iloc[ 1, 3 + T*K*3 + T*2 + i])
-print(bt2)
-print(bt)
-
 
 aij = {}
 for k in range(N*N):
