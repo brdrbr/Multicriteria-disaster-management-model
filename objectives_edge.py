@@ -3,15 +3,11 @@
 Created on Thu Jul 14 06:08:17 2022
 @author: Computer1
 """
-#from declaration_edge import *
+
 from dataread import *
 from pyomo.opt import SolverFactory
 import math
 from utils import *
-from networkx import *
-import openpyxl
-import pandas as pd
-import matplotlib as pylab
 import numpy as np
 
 for l in range(2, 3):
@@ -89,9 +85,13 @@ for l in range(2, 3):
         Model.c1 = ConstraintList()
         # CONSTRAINT 0 for objective 3
         alpha = 1
-        for d in nD:  # for all demand nodes
-            if djkt[t][k][d] > 0:
-                Model.c1.add( Model.Z <= sum((Model.D[d, k, t] - Model.H[d, k, t]/ djkt[t][k][d]) * math.exp((-alpha)*t) for k in nK for t in nT)) #scale etmek lazım
+        obj_sum = 0
+        for t in nT:
+            for k in nK:
+                for d in nD: # for all demand nodes
+                    if djkt[t][k][d] > 0:
+                        obj_sum += djkt[t][k][d]
+                        Model.c1.add( Model.Z <= sum((Model.D[d, k, t] - Model.H[d, k, t]/ obj_sum) * math.exp((-alpha)*t) for k in nK for t in nT))  # scaling
 
     # CONSTRAINT 1
     into = 0
@@ -224,5 +224,5 @@ for l in range(2, 3):
     #else:
     #    print(Model.Z.display())
 
-    graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model)
+    #graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model)
     excel_writer(nT, nK, djkt, Model, l)
