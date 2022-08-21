@@ -84,17 +84,25 @@ def excel_writer(nT, nK, djkt, Model, l):
             djktlist = []
             Dlist = []
             percentage = []
+            Hlist = []
+            NetList = []
             for key, value in djkt[i][j].items():
                 if key in demandnodes:
                     djktlist.append(value)
             for (key, value), (key2, value2) in zip(Model.D.get_values().items(), Model.H.get_values().items()):
                 if key[0] in demandnodes and key[0]  == key2[0] and j == key[1] and i == key[2]:
-                    Dlist.append(int(value) - int(value2))  # total demand - unsatisfied demand
+                    Dlist.append(int(value))  # total demand
+                    Hlist.append(int(value2))
+                    NetList.append(int(value)- int(value2))
+
 
             df["djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = djktlist
             df["Djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = Dlist
+            df["Hjkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = Hlist
+            df["Net satisfied demand for (C" + str(j + 1) + "T" + str(i + 1) + ")"] = NetList
+
             for m in range(len(djktlist)):
-                percentage.append(str(Dlist[m] / djktlist[m] * 100) + "%")
+                percentage.append(str(NetList[m] / djktlist[m] * 100) + "%")
             df["Percentage Satisfied for " + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = percentage
     df.set_index('', drop=True, inplace=True)
 
