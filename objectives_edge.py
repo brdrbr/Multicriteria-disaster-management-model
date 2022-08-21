@@ -13,11 +13,9 @@ from networkx import *
 import openpyxl
 import pandas as pd
 import matplotlib as pylab
+import numpy as np
 
-
-
-
-for l in range(0,3):
+for l in range(0, 1):
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
     Model.X = Var(nE, nK, nT, within=NonNegativeReals)
@@ -95,6 +93,7 @@ for l in range(0,3):
         for d in nD:  # for all demand nodes
             if djkt[t][k][d] > 0:  
                 Model.c1.add( Model.Z <= sum(Model.D[d, k, t] - Model.H[d, k, t] * math.exp((-alpha)*t) for k in nK for t in nT))
+
     # CONSTRAINT 1
     into = 0
     out = 0
@@ -110,8 +109,8 @@ for l in range(0,3):
                     Model.c1.add(into - out == Sikt[t][k][e])
                     into = 0
                     out = 0
-    
-    
+
+
     # CONSTRAINT 2
     into = 0
     out = 0
@@ -128,8 +127,9 @@ for l in range(0,3):
                     Model.c1.add(into - out + Model.H[e, k, t] == Model.D[e, k, t])
                     into = 0
                     out = 0
-    
-    
+
+    Model.c1.pprint()
+
     # CONSTRAINT 3
     for t in nT:
         for k in nK:
@@ -144,19 +144,17 @@ for l in range(0,3):
                     Model.c1.add(into - out == 0)
                     into = 0
                     out = 0
-    
-    
+
     # CONSTRAINT 4
     for t in nT:
         for k in nK:
             for d in nD:
                 if t == 0:
-                    Model.c1.add(Model.H[d, k, t] == 0)
+                   # Model.c1.add(Model.H[d, k, t] == 0)
                     Model.c1.add(Model.D[d, k, t] == djkt[t][k][d])
                 else:
                     Model.c1.add(Model.D[d, k, t] == Model.H[d, k, t-1] + djkt[t][k][d])
-    
-    
+
     # REMOVING BLOCKED ARCS FOR CONSTRAINTS 5 AND 6
     capacities = []
     for t in nT:
@@ -165,19 +163,21 @@ for l in range(0,3):
                 for d in nD:
                     if int(str(i[0])[:-1]) == s and int(str(i[0])[1:2]) == d:
                         capacities.append(i[1])
-    
+
+
     # CONSTRAINT 5
     for t in nT:
         for index, i in enumerate(uijt[t]):
             if i[1] != 0:  # its not blocked
                 Model.c1.add(sum(Model.X[i[0], k, t] for k in nK) <= capacities[index])
-    
+
+
     # CONSTRAINT 6
     for t in nT:
         for index, i in enumerate(uijt[t]):
             if i[1] == 0:  # its blocked
                 Model.c1.add(sum(Model.X[i[0], k, t] for k in nK) <= capacities[i[1]] * Model.Y[i[0], t])
-    
+
     # CONSTRAINT 7
     origin_list = []
     destination_list = []
@@ -190,7 +190,8 @@ for l in range(0,3):
                 time_list.append(t)
     for t in nT:
         Model.c1.add(sum(Model.W[int(str(o)+str(d)), t] for (o, d) in zip(origin_list, destination_list)) <= bt[t])
-    
+
+
     # CONSTRAINT 8
     for t in nT:
         nT2 = RangeSet(0, t)
@@ -217,10 +218,10 @@ for l in range(0,3):
                     Model.c1.add(Model.X[int(str(i[0])), k, t] >= 0)
                     Model.c1.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
                     counter += 1
-    
+
     #Model.obj.pprint()
-    #Model.c1.pprint()
-    
+    Model.c1.pprint()
+
     opt = SolverFactory('glpk')
     Msolution = opt.solve(Model)
     # Display solution
@@ -307,4 +308,4 @@ for i in nT:
 df.set_index('', drop=True, inplace=True)
 writer = pd.ExcelWriter('output.xlsx', engine = 'xlsxwriter')
 df.to_excel(writer, sheet_name = "Demand Data")
-writer.save() 
+writer.save()

@@ -6,13 +6,12 @@ Created on Tue Jul 19 09:39:45 2022
 
 import pandas as pd
 from pyomo.environ import *
-from utils_edge import *
 
-df = pd.read_excel('data.xlsx')
+df = pd.read_excel(open('data.xlsx', 'rb'), sheet_name='Data', engine='openpyxl')
 
-T = df.iloc[0,0]
-K = df.iloc[0,1]
-N = df.iloc[0,2]
+T = df.iloc[0, 0]
+K = df.iloc[0, 1]
+N = df.iloc[0, 2]
 
 nS = RangeSet(1, N)  # supply nodes ( I included transition & demand nodes here but gave them 0 supply )
 nD = RangeSet(1, N)  # demand nodes ( I included transition & supply nodes here but gave them 0 demand )
@@ -49,7 +48,6 @@ for i in range(T):
         djkt[i].append({})
         for k in range(N):
             djkt[i][j][k+1] = df.iloc[ 1 + 6*(k), 3 + T*K + j + i*K]
-
 dummy = []
 for i in range(1,N+1):
     for j in range(1,N+1):
