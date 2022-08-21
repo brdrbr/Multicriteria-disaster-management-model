@@ -88,8 +88,8 @@ def excel_writer(nT, nK, djkt, Model, l):
                 if key in demandnodes:
                     djktlist.append(value)
             for (key, value), (key2, value2) in zip(Model.D.get_values().items(), Model.H.get_values().items()):
-                if key[0] in demandnodes and j == key[1] and i == key[2]:
-                    Dlist.append(int(value) - int(value2))
+                if key[0] in demandnodes and key[0]  == key2[0] and j == key[1] and i == key[2]:
+                    Dlist.append(int(value) - int(value2))  # total demand - unsatisfied demand
 
             df["djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = djktlist
             df["Djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = Dlist

@@ -10,7 +10,7 @@ import math
 from utils import *
 import numpy as np
 
-for l in range(2, 3):
+for l in range(0, 3):
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
     Model.X = Var(nE, nK, nT, within=NonNegativeReals)
@@ -86,12 +86,10 @@ for l in range(2, 3):
         # CONSTRAINT 0 for objective 3
         alpha = 1
         obj_sum = 0
-        for t in nT:
-            for k in nK:
-                for d in nD: # for all demand nodes
-                    if djkt[t][k][d] > 0:
-                        obj_sum += djkt[t][k][d]
-                        Model.c1.add( Model.Z <= sum((Model.D[d, k, t] - Model.H[d, k, t]/ obj_sum) * math.exp((-alpha)*t) for k in nK for t in nT))  # scaling
+        for d in nD: # for all demand nodes
+            if djkt[t][k][d] > 0:
+                obj_sum += djkt[t][k][d]
+                Model.c1.add( Model.Z <= sum((Model.D[d, k, t] - Model.H[d, k, t]/  djkt[t][k][d]) * math.exp((-alpha)*t) for k in nK for t in nT))  # scaling
 
     # CONSTRAINT 1
     into = 0
@@ -211,6 +209,8 @@ for l in range(2, 3):
                     Model.c1.add(Model.X[int(str(i[0])), k, t] >= 0)
                     Model.c1.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
                     counter += 1
+
+    Model.c1.pprint()
 
     opt = SolverFactory('glpk')
     Msolution = opt.solve(Model)
