@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from networkx import *
 import openpyxl
 import pandas as pd
+import matplotlib as pylab
 
 
 
@@ -106,7 +107,6 @@ for l in range(0,3):
                             into += Model.X[i, k, t]
                         if int(str(i)[1:2]) == e:
                             out += Model.X[i, k, t]
-            
                     Model.c1.add(into - out == Sikt[t][k][e])
                     into = 0
                     out = 0
@@ -227,43 +227,55 @@ for l in range(0,3):
     #print(Msolution)
     print('\nObjective Solution = ', Model.obj())
     #if l == 0:  
-    #    print(Model.X.display())
-    #elif l == 1:    
-    #    print(Model.D.display())
+    print(Model.X.display())
+    #if l == 1:    
+        #print(Model.D.display())
     #else:
     #    print(Model.Z.display())
-    
-    
-    
     counter = 1
     periodcounter = 1
     commoditycounter = 1
     edgelabeldictionary = {}
+    
     for i in nT:
         for j in nK:
-            G = nx.Graph()
-            for k in nS:
-                G.add_node(str(k))
+            supplynodes = []
+            demandnodes = []
+            transhipmentnodes = []
+            for key, value in Sikt[i][j].items():
+                if value != 0:
+                    supplynodes.append(key)
+            for key, value in djkt[i][j].items():
+                if value != 0:
+                    demandnodes.append(key)
+            for w in nN:
+                if w not in supplynodes and w not in demandnodes:
+                    transhipmentnodes.append(w)
+            G = nx.DiGraph()
             for k in nS:
                 for key, value in Model.X.get_values().items():
-                    if str(key[0])[0] == str(k) and str(key[1]) == str(i) and str(key[2]) == str(j):
+                    if str(key[0])[0] == str(k) and str(key[1]) == str(j) and str(key[2]) == str(i):
                         if value != 0.0:
-                            G.add_edge(str(k), str(key[0])[1], weight = str(value))
-                            edgelabeldictionary[k, int(str(key[0])[1])] = str(value)
+                            G.add_edge(int(str(k)), int(str(key[0])[1]), edge_label = str(value))
+            color_map = []
+            for node in G:
+                if node in supplynodes:
+                    color_map.append('orange')
+                elif node in demandnodes:
+                    color_map.append('green')
+                else: 
+                    color_map.append('blue')    
             plt.figure(counter)
             plt.title("Period: " + str(periodcounter) + " Commodity: " + str(commoditycounter))
             pos = nx.spring_layout(G)
-            nx.draw(G, pos, with_labels=True, arrows = True)
-            nx.draw_networkx_edge_labels(G, pos, edge_labels = nx.get_edge_attributes(G, 'weight'),label_pos=0.5,  rotate=False, font_size=8)
-            commoditycounter = commoditycounter+  1
-            counter = counter + 1
+            nx.draw(G, pos, node_color=color_map, with_labels=True)
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G,'edge_label'))
+            commoditycounter = commoditycounter +  1
+            counter = counter + 1   
+            
+            plt.show()
         commoditycounter = 1
-        periodcounter = periodcounter +  1
-    plt.show()
-    print(Model.D.get_values())
-
-
-
+        
 
 data = {}
 demandnodes = []
