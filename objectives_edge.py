@@ -15,7 +15,7 @@ import pandas as pd
 import matplotlib as pylab
 import numpy as np
 
-for l in range(0, 3):
+for l in range(0,1):
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
     Model.X = Var(nE, nK, nT, within=NonNegativeReals)
@@ -110,7 +110,6 @@ for l in range(0, 3):
                     into = 0
                     out = 0
 
-
     # CONSTRAINT 2
     into = 0
     out = 0
@@ -127,8 +126,6 @@ for l in range(0, 3):
                     Model.c1.add(into - out + Model.H[e, k, t] == Model.D[e, k, t])
                     into = 0
                     out = 0
-
-    Model.c1.pprint()
 
     # CONSTRAINT 3
     for t in nT:
@@ -164,13 +161,11 @@ for l in range(0, 3):
                     if int(str(i[0])[:-1]) == s and int(str(i[0])[1:2]) == d:
                         capacities.append(i[1])
 
-
     # CONSTRAINT 5
     for t in nT:
         for index, i in enumerate(uijt[t]):
             if i[1] != 0:  # its not blocked
                 Model.c1.add(sum(Model.X[i[0], k, t] for k in nK) <= capacities[index])
-
 
     # CONSTRAINT 6
     for t in nT:
@@ -190,7 +185,6 @@ for l in range(0, 3):
                 time_list.append(t)
     for t in nT:
         Model.c1.add(sum(Model.W[int(str(o)+str(d)), t] for (o, d) in zip(origin_list, destination_list)) <= bt[t])
-
 
     # CONSTRAINT 8
     for t in nT:
@@ -219,16 +213,13 @@ for l in range(0, 3):
                     Model.c1.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
                     counter += 1
 
-    #Model.obj.pprint()
-    Model.c1.pprint()
-
     opt = SolverFactory('glpk')
     Msolution = opt.solve(Model)
     # Display solution
     #print(Msolution)
-    print('\nObjective Solution = ', Model.obj())
+    print(f'\nObjective {l+1} Solution = ', Model.obj())
     #if l == 0:  
-    print(Model.X.display())
+    #print(Model.X.display())
     #if l == 1:    
         #print(Model.D.display())
     #else:
@@ -297,15 +288,17 @@ for i in nT:
         for key, value in djkt[i][j].items():
             if key in demandnodes:
                 djktlist.append(value)
-        for key, value in Model.D.get_values().items():
+        for (key, value), (key2,value2) in zip(Model.D.get_values().items(),Model.H.get_values().items()):
             if key[0] in demandnodes and j == key[1] and i == key[2]:
-                Dlist.append(int(value))   
+                Dlist.append(int(value) - int(value2))
+
         df["djkt(C" + str(j+1) + "T" + str(i+1) + ")"] = djktlist
         df["Djkt(C" + str(j+1) + "T" + str(i+1) + ")"] = Dlist
         for m in range(len(djktlist)):
             percentage.append(str(Dlist[m]/djktlist[m]*100) + "%")
-        df["Percentage Satisfied for " + "(C" + str(j+1) + "T" + str(i+1) + ")"] = percentage        
+        df["Percentage Satisfied for " + "(C" + str(j+1) + "T" + str(i+1) + ")"] = percentage
 df.set_index('', drop=True, inplace=True)
 writer = pd.ExcelWriter('output.xlsx', engine = 'xlsxwriter')
 df.to_excel(writer, sheet_name = "Demand Data")
+
 writer.save()

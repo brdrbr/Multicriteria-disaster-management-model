@@ -48,6 +48,7 @@ for i in range(T):
         djkt[i].append({})
         for k in range(N):
             djkt[i][j][k+1] = df.iloc[ 1 + 6*(k), 3 + T*K + j + i*K]
+
 dummy = []
 for i in range(1,N+1):
     for j in range(1,N+1):
