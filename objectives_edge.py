@@ -10,7 +10,7 @@ import math
 from utils import *
 import numpy as np
 
-for l in range(0, 3):
+for l in range(2, 3):
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
     Model.X = Var(nE, nK, nT, within=NonNegativeReals)
@@ -67,6 +67,7 @@ for l in range(0, 3):
                             objective += i[1]*Model.X[e, k, t]
         Model.obj = Objective(expr=objective, sense=1)
         Model.c1 = ConstraintList()
+
     elif l == 1:
         # OBJECTIVE 2
         alpha = 1
@@ -77,6 +78,7 @@ for l in range(0, 3):
                     objective += (Model.D[d, k, t] - Model.H[d, k, t]) * math.exp((-alpha)*t)
         Model.obj = Objective(expr=objective, sense=-1)
         Model.c1 = ConstraintList()
+
     else:
         Model.Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
         # OBJECTIVE 3
@@ -89,7 +91,7 @@ for l in range(0, 3):
         for d in nD: # for all demand nodes
             if djkt[t][k][d] > 0:
                 obj_sum += djkt[t][k][d]
-                Model.c1.add( Model.Z <= sum((Model.D[d, k, t] - Model.H[d, k, t]/  djkt[t][k][d]) * math.exp((-alpha)*t) for k in nK for t in nT))  # scaling
+                Model.c1.add( Model.Z <= sum((Model.D[d, k, t] - Model.H[d, k, t]/ djkt[t][k][d]) * math.exp((-alpha)*t) for k in nK for t in nT))  # scaling
 
     # CONSTRAINT 1
     into = 0
@@ -144,10 +146,13 @@ for l in range(0, 3):
         for k in nK:
             for d in nD:
                 if t == 0:
-                   # Model.c1.add(Model.H[d, k, t] == 0)
-                    Model.c1.add(Model.D[d, k, t] == djkt[t][k][d])
+                    Model.c1.add(Model.H[d, k, t] == 0)
+                    Model.c1.add(Model.D[d, k, t] <= djkt[t][k][d])
                 else:
                     Model.c1.add(Model.D[d, k, t] == Model.H[d, k, t-1] + djkt[t][k][d])
+                    Model.c1.add(Model.H[d, k, t] <= Model.D[d, k, t])
+
+    Model.c1.pprint()
 
     # REMOVING BLOCKED ARCS FOR CONSTRAINTS 5 AND 6
     capacities = []
@@ -210,19 +215,10 @@ for l in range(0, 3):
                     Model.c1.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
                     counter += 1
 
-    Model.c1.pprint()
-
     opt = SolverFactory('glpk')
     Msolution = opt.solve(Model)
 
     print(f'\nObjective {l+1} Solution = ', Model.obj())
 
-    #if l == 0:  
-    #print(Model.X.display())
-    #if l == 1:    
-        #print(Model.D.display())
-    #else:
-    #    print(Model.Z.display())
-
-    #graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model)
+    graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model)
     excel_writer(nT, nK, djkt, Model, l)

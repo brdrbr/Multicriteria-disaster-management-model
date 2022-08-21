@@ -91,7 +91,7 @@ def excel_writer(nT, nK, djkt, Model, l):
                     djktlist.append(value)
             for (key, value), (key2, value2) in zip(Model.D.get_values().items(), Model.H.get_values().items()):
                 if key[0] in demandnodes and key[0]  == key2[0] and j == key[1] and i == key[2]:
-                    Dlist.append(int(value))  # total demand
+                    Dlist.append(int(value))  # total demand - unsatisfied demand
                     Hlist.append(int(value2))
                     NetList.append(int(value)- int(value2))
 
