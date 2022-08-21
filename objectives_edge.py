@@ -14,7 +14,7 @@ import pandas as pd
 import matplotlib as pylab
 import numpy as np
 
-for l in range(0, 3):
+for l in range(2, 3):
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
     Model.X = Var(nE, nK, nT, within=NonNegativeReals)
@@ -90,8 +90,8 @@ for l in range(0, 3):
         # CONSTRAINT 0 for objective 3
         alpha = 1
         for d in nD:  # for all demand nodes
-            if djkt[t][k][d] > 0:  
-                Model.c1.add( Model.Z <= sum(Model.D[d, k, t] - Model.H[d, k, t] * math.exp((-alpha)*t) for k in nK for t in nT))
+            if djkt[t][k][d] > 0:
+                Model.c1.add( Model.Z <= sum((Model.D[d, k, t] - Model.H[d, k, t]/ djkt[t][k][d]) * math.exp((-alpha)*t) for k in nK for t in nT)) #scale etmek lazım
 
     # CONSTRAINT 1
     into = 0
@@ -224,5 +224,5 @@ for l in range(0, 3):
     #else:
     #    print(Model.Z.display())
 
-    #graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model)
+    graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model)
     excel_writer(nT, nK, djkt, Model, l)

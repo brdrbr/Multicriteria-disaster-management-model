@@ -59,6 +59,7 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model):
             nx.draw(G, pos, node_color=color_map, with_labels=True)
             nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'edge_label'))
             commoditycounter = commoditycounter + 1
+            periodcounter = periodcounter + 1
             counter = counter + 1
 
             plt.show()
