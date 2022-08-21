@@ -146,13 +146,11 @@ for l in range(2, 3):
         for k in nK:
             for d in nD:
                 if t == 0:
-                    Model.c1.add(Model.H[d, k, t] == 0)
-                    Model.c1.add(Model.D[d, k, t] <= djkt[t][k][d])
+                    #Model.c1.add(Model.H[d, k, t] == 0)
+                    Model.c1.add(Model.D[d, k, t] == djkt[t][k][d])
                 else:
                     Model.c1.add(Model.D[d, k, t] == Model.H[d, k, t-1] + djkt[t][k][d])
                     Model.c1.add(Model.H[d, k, t] <= Model.D[d, k, t])
-
-    Model.c1.pprint()
 
     # REMOVING BLOCKED ARCS FOR CONSTRAINTS 5 AND 6
     capacities = []
