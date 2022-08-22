@@ -106,14 +106,7 @@ def excel_writer(nT, nK, djkt, Model, l):
             df["Percentage Satisfied for " + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = percentage
     df.set_index('', drop=True, inplace=True)
 
-    if l == 0:
-        writer = pd.ExcelWriter(f'output_obj_{l+1}.xlsx', engine='xlsxwriter')
-        df.to_excel(writer, sheet_name=f"Demand Data Obj {l+1}")
-        writer.save()
-        writer.close()
-    else:
-        # Assigning the workbook to the writer engine
-        writer = pd.ExcelWriter(f'output_obj_{l+1}.xlsx', engine='xlsxwriter')
-        df.to_excel(writer, sheet_name=f"Demand Data Obj {l+1}", index=False)
-        writer.save()
-        writer.close()
+    writer = pd.ExcelWriter(f'output_obj_{l+1}.xlsx', engine='xlsxwriter')
+    df.to_excel(writer, sheet_name=f"Demand Data Obj {l+1}")
+    writer.save()
+    writer.close()
