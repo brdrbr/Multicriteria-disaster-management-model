@@ -10,7 +10,7 @@ import math
 from utils import *
 import numpy as np
 
-for l in range(2, 3):
+for l in range(0, 3):
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
     Model.X = Var(nE, nK, nT, within=NonNegativeReals)
