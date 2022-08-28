@@ -4,6 +4,11 @@ Created on Thu Jul 14 06:08:17 2022
 @author: Computer1
 """
 
+## TODO: X-xi yeni variable olarak degistir DONE
+## TODO: Displayledigimiz yaseminin yaptigi exceli her run icin otomatik yapsin
+## TODO: Optimal degerler esit olunca bir optimal solutionda obur objectiveleri kullanarak tiebreaker sağla, yüzde katsayılarını kullan
+## TODO: Objective 3 pay kismini kumulatif yap DONE
+
 from dataread import *
 from pyomo.opt import SolverFactory
 import math
@@ -35,6 +40,9 @@ for l in range(0, 3):
         Model.H[4, k, 0] = 0
         Model.H[5, k, 0] = 0
         Model.H[6, k, 0] = 0
+
+    # Q = D - H (satisfied demand amount)
+    Model.Q = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
 
     # Units of resources allocated to blocked arc e in period t
     Model.W = Var(nE, nT, bounds=(0, np.inf), within=NonNegativeReals)
@@ -75,7 +83,7 @@ for l in range(0, 3):
         for t in nT:
             for k in nK:
                 for d in nD:
-                    objective += (Model.D[d, k, t] - Model.H[d, k, t]) * math.exp((-alpha)*t)
+                    objective += (Model.Q[d, k, t]) * math.exp((-alpha)*t) #(Model.D[d, k, t] - Model.H[d, k, t]) * math.exp((-alpha)*t)
         Model.obj = Objective(expr=objective, sense=-1)
         Model.c1 = ConstraintList()
 
@@ -88,10 +96,16 @@ for l in range(0, 3):
         # CONSTRAINT 0 for objective 3
         alpha = 1
         obj_sum = 0
-        for d in nD: # for all demand nodes
-            if djkt[t][k][d] > 0:
-                obj_sum += djkt[t][k][d]
-                Model.c1.add( Model.Z <= sum((Model.D[d, k, t] - Model.H[d, k, t]/ djkt[t][k][d]) * math.exp((-alpha)*t) for k in nK for t in nT))  # scaling
+        for t in nT:
+            for k in nK:
+                for d in nD:  # for all demand nodes
+                    if djkt[t][k][d] > 0:
+                        obj_sum += djkt[t][k][d]
+        for t in nT:
+            for k in nK:
+                for d in nD:  # for all demand nodes
+                    if djkt[t][k][d] > 0:
+                        Model.c1.add(Model.Z <= sum((Model.Q[d, k, t] / obj_sum) * math.exp((-alpha) * t) for k in nK for t in nT))
 
     # CONSTRAINT 1
     into = 0
@@ -148,9 +162,11 @@ for l in range(0, 3):
                 if t == 0:
                     Model.c1.add(Model.D[d, k, t] == djkt[t][k][d])
                     Model.c1.add(Model.H[d, k, t] <= Model.D[d, k, t])
+                    Model.c1.add(Model.Q[d, k, t] == Model.D[d, k, t] - Model.H[d, k, t])
                 else:
                     Model.c1.add(Model.D[d, k, t] == Model.H[d, k, t-1] + djkt[t][k][d])
                     Model.c1.add(Model.H[d, k, t] <= Model.D[d, k, t])
+                    Model.c1.add(Model.Q[d, k, t] == Model.D[d, k, t] - Model.H[d, k, t])
 
     # REMOVING BLOCKED ARCS FOR CONSTRAINTS 5 AND 6
     capacities = []

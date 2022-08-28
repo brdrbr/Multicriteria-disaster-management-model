@@ -2,7 +2,6 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
-from openpyxl import load_workbook
 
 
 def update_blocked_capacities(uijt, blocked):
@@ -95,11 +94,9 @@ def excel_writer(nT, nK, djkt, Model, l):
                     Hlist.append(int(value2))
                     NetList.append(int(value) - int(value2))
 
-
             df["djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = djktlist
             df["Djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = Dlist
             df["Hjkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = Hlist
-           # df["Net satisfied demand for (C" + str(j + 1) + "T" + str(i + 1) + ")"] = NetList
 
             for m in range(len(djktlist)):
                 percentage.append(str(NetList[m] / djktlist[m] * 100) + "%")
@@ -109,4 +106,3 @@ def excel_writer(nT, nK, djkt, Model, l):
     writer = pd.ExcelWriter(f'output_obj_{l+1}.xlsx', engine='xlsxwriter')
     df.to_excel(writer, sheet_name=f"Demand Data Obj {l+1}")
     writer.save()
-    writer.close()
