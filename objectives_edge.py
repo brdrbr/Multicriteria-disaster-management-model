@@ -13,6 +13,9 @@ import math
 from utils import *
 import numpy as np
 
+stream_solver = False    # True prints solver output to screen
+keepfiles = False    # True prints intermediate file names (.nl,.sol,...)
+
 for l in range(0, 3):
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
@@ -61,46 +64,57 @@ for l in range(0, 3):
         Model.Y[44, t] = 0
         Model.Y[55, t] = 0
         Model.Y[66, t] = 0
+
+     # all objectives for tiebreaking
+    Model.objective1 = 0
+    for t in nT:
+        for k in nK:
+            for i in Cijkt[t][k]:
+                for e in nE:
+                    if i[0] == e:
+                        Model.objective1 += i[1] * Model.X[e, k, t]
+
+    alpha = 1
+    Model.objective2 = 0
+    for t in nT:
+        for k in nK:
+            for d in nD:
+                Model.objective2 += (Model.Q[d, k, t]) * math.exp((-alpha) * t)
+
+    Model.objective3 = Var(bounds=(0, np.inf), within=NonNegativeReals)
+
+    # scaling happens here
+    Model.scaling_factor = Suffix(direction=Suffix.EXPORT)
+    Model.scaling_factor[Model.objective1] = 105
+    Model.scaling_factor[Model.objective2] = 16
+    Model.scaling_factor[Model.objective3] = 0.15
+
     if l == 0:
         # OBJECTIVE 1
-
-        objective = 0
-        for t in nT:
-            for k in nK:
-                for i in Cijkt[t][k]:
-                    for e in nE:
-                        if i[0] == e:
-                            objective += i[1]*Model.X[e, k, t]
-        Model.obj = Objective(expr=objective, sense=1)
+        Model.obj = Objective(expr=Model.objective1 + (0.0001 * Model.objective2) + (Model.objective3 * 0.0001), sense=1)
         Model.c1 = ConstraintList()
 
     elif l == 1:
         # OBJECTIVE 2
-        alpha = 1
-        objective = 0
-        for t in nT:
-            for k in nK:
-                for d in nD:
-                    objective += (Model.Q[d, k, t]) * math.exp((-alpha)*t) #(Model.D[d, k, t] - Model.H[d, k, t]) * math.exp((-alpha)*t)
-        Model.obj = Objective(expr=objective, sense=-1)
+        Model.obj = Objective(expr=Model.objective2 + (Model.objective1 * 0.0001) + (Model.objective3 * 0.0001) , sense=-1)
         Model.c1 = ConstraintList()
 
     else:
-        Model.Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
         # OBJECTIVE 3
-        objective = Model.Z
-        Model.obj = Objective(expr=objective, sense=-1)
+        Model.obj = Objective(expr=Model.objective3 + (Model.objective1 * 0.0001) + (Model.objective2 * 0.0001), sense=-1)
         Model.c1 = ConstraintList()
-        # CONSTRAINT 0 for objective 3
-        alpha = 1
-        obj_sum = 0
-        for t in nT:
-            for k in nK:
-                for d in nD:  # for all demand nodes
-                    if djkt[t][k][d] > 0:
-                        obj_sum += djkt[t][k][d]
 
-        Model.c1.add(Model.Z <= sum((Model.Q[d, k, t] / obj_sum) * math.exp((-alpha) * t) for k in nK for t in nT for d in nD))
+    # CONSTRAINT 0 for objective 3
+    alpha = 1
+    obj_sum = 0
+    for t in nT:
+        for k in nK:
+            for d in nD:  # for all demand nodes
+                if djkt[t][k][d] > 0:
+                    obj_sum += djkt[t][k][d]
+            for d in nD:
+                if djkt[t][k][d] > 0:
+                    Model.c1.add(Model.objective3 <= sum((Model.Q[d, k, t] / obj_sum) * math.exp((-alpha) * t) for k in nK for t in nT) * 0.0001)
 
     # CONSTRAINT 1
     into = 0
@@ -225,7 +239,7 @@ for l in range(0, 3):
                     counter += 1
 
     opt = SolverFactory('glpk')
-    Msolution = opt.solve(Model, tee=True)
+    Msolution = opt.solve(Model,keepfiles=keepfiles,tee=stream_solver)
 
     print(f'\nObjective {l+1} Solution = ', Model.obj())
 
