@@ -10,9 +10,6 @@ import math
 from utils import *
 import numpy as np
 
-stream_solver = False    # True prints solver output to screen
-keepfiles = False    # True prints intermediate file names (.nl,.sol,...)
-
 for l in range(0, 3):
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
@@ -237,7 +234,7 @@ for l in range(0, 3):
                     counter += 1
 
     opt = SolverFactory('glpk')
-    Msolution = opt.solve(Model,keepfiles=keepfiles,tee=stream_solver)
+    Msolution = opt.solve(Model)
 
     print(f'\nObjective {l+1} Solution = ', Model.obj())
 
