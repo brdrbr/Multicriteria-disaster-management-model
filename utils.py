@@ -2,6 +2,7 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
+from dataread import uijt
 
 
 def update_blocked_capacities(uijt, blocked):
@@ -52,11 +53,61 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l):
                     color_map.append('green')
                 else:
                     color_map.append('blue')
+
+            # colorizing edges
+            edge_list = G.edges(data=True)
+            edge_list_updated = {}
+
+            for edge in edge_list:
+                edg = int(str(edge[0]) + str(edge[1]))
+                val = float(edge[2]["edge_label"])
+                edge_list_updated[edg] = val
+
+            green = []
+            red = []
+            for edge in uijt[i]: # bunlar integer
+                if edge[0] in edge_list_updated.keys():
+                    if edge_list_updated[edge[0]] == edge[1]:
+                        green.append(edge[0])
+                    elif edge_list_updated[edge[0]] < edge[1]:
+                        red.append(edge[0])
+
+            green_updated = []
+            red_updated = []
+            for g, r in zip(green, red):
+                f1 = str(g)[0]
+                s1 = str(g)[1]
+                f2 = str(r)[0]
+                s2 = str(r)[1]
+
+                green_updated.append((int(f1), int(s1)))
+                red_updated.append((int(f2), int(s2)))
+
             plt.figure(counter)
             plt.title("Period: " + str(periodcounter) + " Commodity: " + str(commoditycounter))
             pos = nx.spring_layout(G)
             nx.draw(G, pos, node_color=color_map, with_labels=True)
+
+            nx.draw_networkx_edges(G, pos, width=1.0, alpha=0.5)
+            nx.draw_networkx_edges(
+                G,
+                pos,
+                edgelist=green_updated,
+                width=4,
+                alpha=0.5,
+                edge_color="tab:green",
+            )
+            nx.draw_networkx_edges(
+                G,
+                pos,
+                edgelist=red_updated,
+                width=4,
+                alpha=0.5,
+                edge_color="tab:red",
+            )
+
             nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'edge_label'))
+
 
             plt.savefig(f'Obj_{l+1}_{"Period_" + str(periodcounter) + "_Commodity_" + str(commoditycounter)}.png')
             plt.close()
