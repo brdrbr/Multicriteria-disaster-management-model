@@ -4,9 +4,6 @@ Created on Thu Jul 14 06:08:17 2022
 @author: Computer1
 """
 
-## TODO: Optimal degerler esit olunca bir optimal solutionda obur objectiveleri kullanarak tiebreaker sağla, yüzde katsayılarını kullan
-## TODO: Her objective için gelen optimal değerler diger objective'lerde nasıl bir sonuc yaratıyor?
-
 from dataread import *
 from pyomo.opt import SolverFactory
 import math
@@ -19,7 +16,7 @@ keepfiles = False    # True prints intermediate file names (.nl,.sol,...)
 for l in range(0, 3):
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
-    Model.X = Var(nE, nK, nT, within=NonNegativeReals)
+    Model.X = Var(nE, nK, nT, within=NonNegativeIntegers)
     for t in nT:
         for k in nK:
             Model.X[11, k, t] = 0
@@ -30,10 +27,10 @@ for l in range(0, 3):
             Model.X[66, k, t] = 0
 
     # Demand of commodity k at node j in period t
-    Model.D = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
+    Model.D = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeIntegers)
 
     # Unsatisfied demand of commodity k at node j in period t
-    Model.H = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)  # 0 for t-1 = 0 case.
+    Model.H = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeIntegers)  # 0 for t-1 = 0 case.
     for k in nK:
         Model.H[1, k, 0] = 0
         Model.H[2, k, 0] = 0
@@ -43,10 +40,10 @@ for l in range(0, 3):
         Model.H[6, k, 0] = 0
 
     # Q = D - H (satisfied demand amount)
-    Model.Q = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
+    Model.Q = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeIntegers)
 
     # Units of resources allocated to blocked arc e in period t
-    Model.W = Var(nE, nT, bounds=(0, np.inf), within=NonNegativeReals)
+    Model.W = Var(nE, nT, bounds=(0, np.inf), within=NonNegativeIntegers)
     for t in nT:
         Model.W[11, t] = 0
         Model.W[22, t] = 0
@@ -85,23 +82,23 @@ for l in range(0, 3):
 
     # scaling happens here
     Model.scaling_factor = Suffix(direction=Suffix.EXPORT)
-    Model.scaling_factor[Model.objective1] = 105
-    Model.scaling_factor[Model.objective2] = 16
-    Model.scaling_factor[Model.objective3] = 0.15
+    Model.scaling_factor[Model.objective1] = 1/10
+    Model.scaling_factor[Model.objective2] = 1/1
+    Model.scaling_factor[Model.objective3] = 1/0.1
 
     if l == 0:
         # OBJECTIVE 1
-        Model.obj = Objective(expr=Model.objective1 + (0.0001 * Model.objective2) + (Model.objective3 * 0.0001), sense=1)
+        Model.obj = Objective(expr=Model.objective1/10 + (0.00001 * Model.objective2) + (Model.objective3 * 0.00001 * 100), sense=1)
         Model.c1 = ConstraintList()
 
     elif l == 1:
         # OBJECTIVE 2
-        Model.obj = Objective(expr=Model.objective2 + (Model.objective1 * 0.0001) + (Model.objective3 * 0.0001) , sense=-1)
+        Model.obj = Objective(expr=Model.objective2 + ((Model.objective1 / 10) * 0.00001) + (Model.objective3 * 0.00001), sense=-1)
         Model.c1 = ConstraintList()
 
     else:
         # OBJECTIVE 3
-        Model.obj = Objective(expr=Model.objective3 + (Model.objective1 * 0.0001) + (Model.objective2 * 0.0001), sense=-1)
+        Model.obj = Objective(expr=Model.objective3*100 + ((Model.objective1 / 10) * 0.00001) + (Model.objective2 * 0.00001), sense=-1)
         Model.c1 = ConstraintList()
 
     # CONSTRAINT 0 for objective 3
@@ -114,7 +111,8 @@ for l in range(0, 3):
                     obj_sum += djkt[t][k][d]
             for d in nD:
                 if djkt[t][k][d] > 0:
-                    Model.c1.add(Model.objective3 <= sum((Model.Q[d, k, t] / obj_sum) * math.exp((-alpha) * t) for k in nK for t in nT) * 0.0001)
+                    Model.c1.add(Model.objective3 <= sum(
+                        (Model.Q[d, k, t] / obj_sum) * math.exp((-alpha) * t) for k in nK for t in nT))
 
     # CONSTRAINT 1
     into = 0

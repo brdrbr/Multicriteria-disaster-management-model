@@ -95,7 +95,7 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l):
                 G,
                 pos,
                 edgelist=green_updated,
-                width=3.0,
+                width=1.0,
                 alpha=0.5,
                 edge_color="tab:green",
             )
@@ -103,7 +103,7 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l):
                 G,
                 pos,
                 edgelist=red_updated,
-                width=3.0,
+                width=1.0,
                 alpha=0.5,
                 edge_color="tab:red",
             )
