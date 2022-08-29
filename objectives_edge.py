@@ -83,21 +83,27 @@ for l in range(0, 3):
 
     Model.scaling_factor[Model.objective1] = 1/10
     Model.scaling_factor[Model.objective2] = 1/1
-    Model.scaling_factor[Model.objective3] = 1/0.1
+    Model.scaling_factor[Model.objective3] = 1/0.01
 
     if l == 0:
         # OBJECTIVE 1
-        Model.obj = Objective(expr=Model.objective1/10 + (-0.00001 * Model.objective2) + (Model.objective3 * -0.00001 * 100), sense=1)
+        Model.obj = Objective(expr=Model.objective1 * Model.scaling_factor[Model.objective1] +
+                                   (-0.00001 * Model.objective2) +
+                                   (Model.objective3 * -0.00001 * Model.scaling_factor[Model.objective3]), sense=1)
         Model.c1 = ConstraintList()
 
     elif l == 1:
         # OBJECTIVE 2
-        Model.obj = Objective(expr=Model.objective2 + ((Model.objective1 / -10) * 0.00001) + (Model.objective3 * 0.00001), sense=-1)
+        Model.obj = Objective(expr=Model.objective2 +
+                                   ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.00001) +
+                                   (Model.objective3 * 0.00001 * Model.scaling_factor[Model.objective3]), sense=-1)
         Model.c1 = ConstraintList()
 
     else:
         # OBJECTIVE 3
-        Model.obj = Objective(expr=Model.objective3/0.01 + ((Model.objective1 / -10) * 0.00001) + (Model.objective2 * 0.00001), sense=-1)
+        Model.obj = Objective(expr=Model.objective3 * Model.scaling_factor[Model.objective3] +
+                                   ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.00001) +
+                                   (Model.objective2 * 0.00001), sense=-1)
         Model.c1 = ConstraintList()
 
     # CONSTRAINT 0 for objective 3
