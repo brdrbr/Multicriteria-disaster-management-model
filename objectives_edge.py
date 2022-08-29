@@ -240,3 +240,8 @@ for l in range(0, 3):
 
     graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l)
     excel_writer(nT, nK, djkt, Model, l)
+
+    print("Result of objective 1 only: ", Model.objective1())
+    print("Result of objective 2 only: ", Model.objective2())
+    print("Result of objective 3 only: ", Model.objective3())
+
