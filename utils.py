@@ -23,7 +23,6 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l):
     counter = 1
     periodcounter = 1
     commoditycounter = 1
-    edgelabeldictionary = {}
 
     for i in nT:
         for j in nK:
@@ -39,6 +38,7 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l):
             for w in nN:
                 if w not in supplynodes and w not in demandnodes:
                     transhipmentnodes.append(w)
+
             G = nx.DiGraph()
             for k in nS:
                 for key, value in Model.X.get_values().items():
@@ -65,7 +65,7 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l):
 
             green = []
             red = []
-            for edge in uijt[i]: # bunlar integer
+            for edge in uijt[i]:
                 if edge[0] in edge_list_updated.keys():
                     if edge_list_updated[edge[0]] == edge[1]:
                         green.append(edge[0])
@@ -74,13 +74,14 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l):
 
             green_updated = []
             red_updated = []
-            for g, r in zip(green, red):
+            for g in green:
                 f1 = str(g)[0]
                 s1 = str(g)[1]
+                green_updated.append((int(f1), int(s1)))
+
+            for r in red:
                 f2 = str(r)[0]
                 s2 = str(r)[1]
-
-                green_updated.append((int(f1), int(s1)))
                 red_updated.append((int(f2), int(s2)))
 
             plt.figure(counter)
@@ -93,7 +94,7 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l):
                 G,
                 pos,
                 edgelist=green_updated,
-                width=4,
+                width=3.0,
                 alpha=0.5,
                 edge_color="tab:green",
             )
@@ -101,13 +102,12 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l):
                 G,
                 pos,
                 edgelist=red_updated,
-                width=4,
+                width=3.0,
                 alpha=0.5,
                 edge_color="tab:red",
             )
 
             nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'edge_label'))
-
 
             plt.savefig(f'Obj_{l+1}_{"Period_" + str(periodcounter) + "_Commodity_" + str(commoditycounter)}.png')
             plt.close()
@@ -153,7 +153,7 @@ def excel_writer(nT, nK, djkt, Model, l):
             df["Satisfied demand" + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = [a - b for a, b in zip(Dlist, Hlist)]
 
             for m in range(len(djktlist)):
-                percentage.append(str(str(round((NetList[m] / Dlist[m] * 100),2)) + "%"))
+                percentage.append(str(str(round((NetList[m] / Dlist[m] * 100), 2)) + "%"))
 
             df["Percentage Satisfied" + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = percentage
 
