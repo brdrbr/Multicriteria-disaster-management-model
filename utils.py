@@ -18,7 +18,7 @@ def update_blocked_capacities(uijt, blocked):
     return uijt
 
 
-def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model):
+def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l):
     counter = 1
     periodcounter = 1
     commoditycounter = 1
@@ -57,11 +57,12 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model):
             pos = nx.spring_layout(G)
             nx.draw(G, pos, node_color=color_map, with_labels=True)
             nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'edge_label'))
+
+            plt.savefig(f'Obj_{l+1}_{"Period_" + str(periodcounter) + "_Commodity_" + str(commoditycounter)}.png')
+
             commoditycounter = commoditycounter + 1
             periodcounter = periodcounter + 1
             counter = counter + 1
-
-            plt.show()
 
         commoditycounter = 1
 
@@ -89,7 +90,7 @@ def excel_writer(nT, nK, djkt, Model, l):
                 if key in demandnodes:
                     djktlist.append(value)
             for (key, value), (key2, value2) in zip(Model.D.get_values().items(), Model.H.get_values().items()):
-                if key[0] in demandnodes and key[0]  == key2[0] and j == key[1] and i == key[2]:
+                if key[0] in demandnodes and key[0] == key2[0] and j == key[1] and i == key[2]:
                     Dlist.append(int(value))  # total demand - unsatisfied demand
                     Hlist.append(int(value2))
                     NetList.append(int(value) - int(value2))
@@ -97,12 +98,19 @@ def excel_writer(nT, nK, djkt, Model, l):
             df["djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = djktlist
             df["Djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = Dlist
             df["Hjkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = Hlist
+            df["Satisfied demand" + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = [a - b for a, b in zip(Dlist, Hlist)]
 
             for m in range(len(djktlist)):
-                percentage.append(str(NetList[m] / djktlist[m] * 100) + "%")
-            df["Percentage Satisfied for " + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = percentage
+                percentage.append(str(str(round((NetList[m] / Dlist[m] * 100),2)) + "%"))
+
+            df["Percentage Satisfied" + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = percentage
+
     df.set_index('', drop=True, inplace=True)
 
     writer = pd.ExcelWriter(f'output_obj_{l+1}.xlsx', engine='xlsxwriter')
     df.to_excel(writer, sheet_name=f"Demand Data Obj {l+1}")
     writer.save()
+
+
+
+

@@ -4,10 +4,8 @@ Created on Thu Jul 14 06:08:17 2022
 @author: Computer1
 """
 
-## TODO: X-xi yeni variable olarak degistir DONE
-## TODO: Displayledigimiz yaseminin yaptigi exceli her run icin otomatik yapsin
 ## TODO: Optimal degerler esit olunca bir optimal solutionda obur objectiveleri kullanarak tiebreaker sağla, yüzde katsayılarını kullan
-## TODO: Objective 3 pay kismini kumulatif yap DONE
+## TODO: Her objective için gelen optimal değerler diger objective'lerde nasıl bir sonuc yaratıyor?
 
 from dataread import *
 from pyomo.opt import SolverFactory
@@ -230,9 +228,9 @@ for l in range(0, 3):
                     counter += 1
 
     opt = SolverFactory('glpk')
-    Msolution = opt.solve(Model)
+    Msolution = opt.solve(Model, tee=True)
 
     print(f'\nObjective {l+1} Solution = ', Model.obj())
 
-    graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model)
+    graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l)
     excel_writer(nT, nK, djkt, Model, l)
