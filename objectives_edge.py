@@ -79,6 +79,8 @@ for l in range(0, 3):
 
     # scaling happens here
     Model.scaling_factor = Suffix(direction=Suffix.EXPORT)
+    Model.scaling_expression = Suffix(direction=Suffix.LOCAL)
+
     Model.scaling_factor[Model.objective1] = 1/10
     Model.scaling_factor[Model.objective2] = 1/1
     Model.scaling_factor[Model.objective3] = 1/0.1
@@ -95,7 +97,7 @@ for l in range(0, 3):
 
     else:
         # OBJECTIVE 3
-        Model.obj = Objective(expr=Model.objective3*100 + ((Model.objective1 / -10) * 0.00001) + (Model.objective2 * 0.00001), sense=-1)
+        Model.obj = Objective(expr=Model.objective3/0.01 + ((Model.objective1 / -10) * 0.00001) + (Model.objective2 * 0.00001), sense=-1)
         Model.c1 = ConstraintList()
 
     # CONSTRAINT 0 for objective 3
@@ -241,7 +243,6 @@ for l in range(0, 3):
     graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l)
     excel_writer(nT, nK, djkt, Model, l)
 
-    print("Result of objective 1 only: ", Model.objective1())
+    print("Result of objective 1 only: ", Model.objective1()/10)
     print("Result of objective 2 only: ", Model.objective2())
-    print("Result of objective 3 only: ", Model.objective3())
-
+    print("Result of objective 3 only: ", Model.objective3()/0.01)
