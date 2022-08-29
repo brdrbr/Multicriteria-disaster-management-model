@@ -40,6 +40,7 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l):
                     transhipmentnodes.append(w)
 
             G = nx.DiGraph()
+
             for k in nS:
                 for key, value in Model.X.get_values().items():
                     if str(key[0])[0] == str(k) and str(key[1]) == str(j) and str(key[2]) == str(i):

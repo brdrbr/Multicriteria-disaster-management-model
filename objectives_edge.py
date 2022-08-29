@@ -100,9 +100,7 @@ for l in range(0, 3):
                     if djkt[t][k][d] > 0:
                         obj_sum += djkt[t][k][d]
 
-        for d in nD:  # for all demand nodes
-            if djkt[t][k][d] > 0:
-                Model.c1.add(Model.Z <= sum((Model.Q[d, k, t] / obj_sum) * math.exp((-alpha) * t) for k in nK for t in nT))
+        Model.c1.add(Model.Z <= sum((Model.Q[d, k, t] / obj_sum) * math.exp((-alpha) * t) for k in nK for t in nT for d in nD))
 
     # CONSTRAINT 1
     into = 0
