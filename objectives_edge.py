@@ -82,14 +82,14 @@ for l in range(0, 3):
     if l == 0:
         # OBJECTIVE 1
         Model.obj = Objective(expr=(Model.objective1 * Model.scaling_factor[Model.objective1]) +
-                                   (-0.001 * Model.objective2) +
+                                   (-0.001 * Model.objective2 *  Model.scaling_factor[Model.objective2]) +
                                    (Model.Z * -0.001 * Model.scaling_factor[Model.Z]), sense=1)
         #Model.obj = Objective(expr=Model.objective1, sense=1)
         Model.c1 = ConstraintList()
 
     elif l == 1:
         # OBJECTIVE 2
-        Model.obj = Objective(expr=Model.objective2 +
+        Model.obj = Objective(expr=Model.objective2 *  Model.scaling_factor[Model.objective2]+
                                    ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001) +
                                    (Model.Z * 0.001 * Model.scaling_factor[Model.Z]), sense=-1)
         #Model.obj = Objective(expr=Model.objective2, sense=-1)
@@ -99,7 +99,7 @@ for l in range(0, 3):
         # OBJECTIVE 3
         Model.obj = Objective(expr=Model.Z * Model.scaling_factor[Model.Z] +
                                    ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001) +
-                                   (Model.objective2 * 0.001), sense=-1)
+                                   (Model.objective2 * 0.001 *  Model.scaling_factor[Model.objective2]), sense=-1)
         #Model.obj = Objective(expr=Model.Z, sense=-1)
         Model.c1 = ConstraintList()
 
@@ -243,7 +243,7 @@ for l in range(0, 3):
     opt = SolverFactory('glpk')
     Msolution = opt.solve(Model)
 
-    print(f'\nObjective {l+1} Solution = ', Model.obj())
+    print(f'\nScaled Objective {l+1} Solution = ', Model.obj())
 
     graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l)
     excel_writer(nT, nK, djkt, Model, l)
