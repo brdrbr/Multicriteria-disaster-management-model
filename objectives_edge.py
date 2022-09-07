@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jul 14 06:08:17 2022
-@author: Computer1
-"""
-
 from dataread import *
 from pyomo.opt import SolverFactory
 import math
@@ -75,35 +69,38 @@ for l in range(0, 3):
             for d in nD:
                 Model.objective2 += (Model.Q[d, k, t]) * math.exp((-alpha) * t)
 
-    Model.objective3 = Var(bounds=(0, np.inf), within=NonNegativeReals)
+    Model.Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
 
     # scaling happens here
     Model.scaling_factor = Suffix(direction=Suffix.EXPORT)
     Model.scaling_expression = Suffix(direction=Suffix.LOCAL)
 
-    Model.scaling_factor[Model.objective1] = 1/10
-    Model.scaling_factor[Model.objective2] = 1/1
-    Model.scaling_factor[Model.objective3] = 1/0.01
+    Model.scaling_factor[Model.objective1] = 1/479
+    Model.scaling_factor[Model.objective2] = 1/100
+    Model.scaling_factor[Model.Z] = 1/0.063868012
 
     if l == 0:
         # OBJECTIVE 1
-        Model.obj = Objective(expr=Model.objective1 * Model.scaling_factor[Model.objective1] +
-                                   (-0.00001 * Model.objective2) +
-                                   (Model.objective3 * -0.00001 * Model.scaling_factor[Model.objective3]), sense=1)
+        Model.obj = Objective(expr=(Model.objective1 * Model.scaling_factor[Model.objective1]) +
+                                   (-0.001 * Model.objective2) +
+                                   (Model.Z * -0.001 * Model.scaling_factor[Model.Z]), sense=1)
+        #Model.obj = Objective(expr=Model.objective1, sense=1)
         Model.c1 = ConstraintList()
 
     elif l == 1:
         # OBJECTIVE 2
         Model.obj = Objective(expr=Model.objective2 +
-                                   ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.00001) +
-                                   (Model.objective3 * 0.00001 * Model.scaling_factor[Model.objective3]), sense=-1)
+                                   ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001) +
+                                   (Model.Z * 0.001 * Model.scaling_factor[Model.Z]), sense=-1)
+        #Model.obj = Objective(expr=Model.objective2, sense=-1)
         Model.c1 = ConstraintList()
 
     else:
         # OBJECTIVE 3
-        Model.obj = Objective(expr=Model.objective3 * Model.scaling_factor[Model.objective3] +
-                                   ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.00001) +
-                                   (Model.objective2 * 0.00001), sense=-1)
+        Model.obj = Objective(expr=Model.Z * Model.scaling_factor[Model.Z] +
+                                   ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001) +
+                                   (Model.objective2 * 0.001), sense=-1)
+        #Model.obj = Objective(expr=Model.Z, sense=-1)
         Model.c1 = ConstraintList()
 
     # CONSTRAINT 0 for objective 3
@@ -111,12 +108,14 @@ for l in range(0, 3):
     obj_sum = 0
     for t in nT:
         for k in nK:
-            for d in nD:  # for all demand nodes
+            for d in nD:  # for all demand nodes, generate summations of demand nodes
                 if djkt[t][k][d] > 0:
                     obj_sum += djkt[t][k][d]
+    for t in nT:
+        for k in nK:
             for d in nD:
                 if djkt[t][k][d] > 0:
-                    Model.c1.add(Model.objective3 <= sum(
+                    Model.c1.add(Model.Z <= sum(
                         (Model.Q[d, k, t] / obj_sum) * math.exp((-alpha) * t) for k in nK for t in nT))
 
     # CONSTRAINT 1
@@ -249,6 +248,12 @@ for l in range(0, 3):
     graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l)
     excel_writer(nT, nK, djkt, Model, l)
 
-    print("Result of objective 1 only: ", Model.objective1()/10)
+    print("Scaled Solutions:")
+    print("Result of objective 1 only: ", Model.objective1() * Model.scaling_factor[Model.objective1])
+    print("Result of objective 2 only: ", Model.objective2() * Model.scaling_factor[Model.objective2])
+    print("Result of objective 3 only: ", Model.Z() * Model.scaling_factor[Model.Z])
+
+    print("Unscaled Solutions:")
+    print("Result of objective 1 only: ", Model.objective1())
     print("Result of objective 2 only: ", Model.objective2())
-    print("Result of objective 3 only: ", Model.objective3()/0.01)
+    print("Result of objective 3 only: ", Model.Z())
