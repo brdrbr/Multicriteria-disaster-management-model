@@ -77,7 +77,7 @@ for l in range(0, 3):
 
     Model.scaling_factor[Model.objective1] = 1/479
     Model.scaling_factor[Model.objective2] = 1/100
-    Model.scaling_factor[Model.Z] = 1/0.063868012
+    Model.scaling_factor[Model.Z] = 1/0.0638680124554336
 
     if l == 0:
         # OBJECTIVE 1
