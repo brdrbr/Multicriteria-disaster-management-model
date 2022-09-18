@@ -75,21 +75,21 @@ for l in range(0, 3):
     Model.scaling_factor = Suffix(direction=Suffix.EXPORT)
     Model.scaling_expression = Suffix(direction=Suffix.LOCAL)
 
-    Model.scaling_factor[Model.objective1] = 1/479
+    Model.scaling_factor[Model.objective1] = 1/482 # generic olması lazım bunların
     Model.scaling_factor[Model.objective2] = 1/100
-    Model.scaling_factor[Model.Z] = 1/0.0638680124554336
+    Model.scaling_factor[Model.Z] = 1/0.0638680124554337
 
     if l == 0:
         # OBJECTIVE 1
-        Model.obj = Objective(expr=(Model.objective1 * Model.scaling_factor[Model.objective1]) +
-                                   (-0.001 * Model.objective2 *  Model.scaling_factor[Model.objective2]) +
-                                   (Model.Z * -0.001 * Model.scaling_factor[Model.Z]), sense=1)
-        #Model.obj = Objective(expr=Model.objective1, sense=1)
+        #Model.obj = Objective(expr=(Model.objective1 * Model.scaling_factor[Model.objective1]) +
+        #                           (-0.001 * Model.objective2 * Model.scaling_factor[Model.objective2]) +
+        #                           (Model.Z * -0.001 * Model.scaling_factor[Model.Z]), sense=1)
+        Model.obj = Objective(expr=Model.objective1, sense=1)
         Model.c1 = ConstraintList()
 
     elif l == 1:
         # OBJECTIVE 2
-        Model.obj = Objective(expr=Model.objective2 *  Model.scaling_factor[Model.objective2]+
+        Model.obj = Objective(expr=Model.objective2 * Model.scaling_factor[Model.objective2]+
                                    ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001) +
                                    (Model.Z * 0.001 * Model.scaling_factor[Model.Z]), sense=-1)
         #Model.obj = Objective(expr=Model.objective2, sense=-1)
@@ -97,10 +97,10 @@ for l in range(0, 3):
 
     else:
         # OBJECTIVE 3
-        Model.obj = Objective(expr=Model.Z * Model.scaling_factor[Model.Z] +
-                                   ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001) +
-                                   (Model.objective2 * 0.001 *  Model.scaling_factor[Model.objective2]), sense=-1)
-        #Model.obj = Objective(expr=Model.Z, sense=-1)
+        #Model.obj = Objective(expr=Model.Z * Model.scaling_factor[Model.Z] +
+        #                           ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001) +
+        #                           (Model.objective2 * 0.001 * Model.scaling_factor[Model.objective2]), sense=-1)
+        Model.obj = Objective(expr=Model.Z, sense=-1)
         Model.c1 = ConstraintList()
 
     # CONSTRAINT 0 for objective 3
