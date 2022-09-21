@@ -4,7 +4,7 @@ import math
 from utils import *
 import numpy as np
 
-for l in range(0, 3):
+for l in range(0, 3, 2):  # 0 for obj1, 2 for obj3
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
     Model.X = Var(nE, nK, nT, within=NonNegativeIntegers)
@@ -53,7 +53,7 @@ for l in range(0, 3):
         Model.Y[55, t] = 0
         Model.Y[66, t] = 0
 
-     # all objectives for tiebreaking
+    # Objectives 1 & 3 for tiebreaking
     Model.objective1 = 0
     for t in nT:
         for k in nK:
@@ -62,61 +62,46 @@ for l in range(0, 3):
                     if i[0] == e:
                         Model.objective1 += i[1] * Model.X[e, k, t]
 
-    alpha = 1
-    Model.objective2 = 0
-    for t in nT:
-        for k in nK:
-            for d in nD:
-                Model.objective2 += (Model.Q[d, k, t]) * math.exp((-alpha) * t)
-
     Model.Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
 
     # scaling happens here
     Model.scaling_factor = Suffix(direction=Suffix.EXPORT)
     Model.scaling_expression = Suffix(direction=Suffix.LOCAL)
 
-    Model.scaling_factor[Model.objective1] = 1/482 # generic olması lazım bunların
-    Model.scaling_factor[Model.objective2] = 1/100
-    Model.scaling_factor[Model.Z] = 1/0.0638680124554337
+    # TODO: Make them generic!
+    Model.scaling_factor[Model.objective1] = 1/1000
+    Model.scaling_factor[Model.Z] = 1 #1/(0.62-0.1)
 
     if l == 0:
         # OBJECTIVE 1
-        #Model.obj = Objective(expr=(Model.objective1 * Model.scaling_factor[Model.objective1]) +
-        #                           (-0.001 * Model.objective2 * Model.scaling_factor[Model.objective2]) +
-        #                           (Model.Z * -0.001 * Model.scaling_factor[Model.Z]), sense=1)
-        Model.obj = Objective(expr=Model.objective1, sense=1)
+        Model.obj = Objective(expr=(Model.objective1 * Model.scaling_factor[Model.objective1]) +
+                                   (-Model.Z * 0.001 * Model.scaling_factor[Model.Z]), sense=1)
         Model.c1 = ConstraintList()
 
-    elif l == 1:
-        # OBJECTIVE 2
-        Model.obj = Objective(expr=Model.objective2 * Model.scaling_factor[Model.objective2]+
-                                   ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001) +
-                                   (Model.Z * 0.001 * Model.scaling_factor[Model.Z]), sense=-1)
-        #Model.obj = Objective(expr=Model.objective2, sense=-1)
-        Model.c1 = ConstraintList()
-
-    else:
+    elif l == 2:
         # OBJECTIVE 3
-        #Model.obj = Objective(expr=Model.Z * Model.scaling_factor[Model.Z] +
-        #                           ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001) +
-        #                           (Model.objective2 * 0.001 * Model.scaling_factor[Model.objective2]), sense=-1)
-        Model.obj = Objective(expr=Model.Z, sense=-1)
+        Model.obj = Objective(expr=Model.Z * Model.scaling_factor[Model.Z] +
+                             ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001), sense=-1)
         Model.c1 = ConstraintList()
 
     # CONSTRAINT 0 for objective 3
     alpha = 1
-    obj_sum = 0
-    for t in nT:
+    cumsum = 0
+    satisfied_cumsum = 0
+    previous = 0
+
+    for d in nD:
         for k in nK:
-            for d in nD:  # for all demand nodes, generate summations of demand nodes
+            for t in nT:
                 if djkt[t][k][d] > 0:
-                    obj_sum += djkt[t][k][d]
-    for t in nT:
-        for k in nK:
-            for d in nD:
-                if djkt[t][k][d] > 0:
-                    Model.c1.add(Model.Z <= sum(
-                        (Model.Q[d, k, t] / obj_sum) * math.exp((-alpha) * t) for k in nK for t in nT))
+                    previous = 0 if cumsum == 0 else satisfied_cumsum / cumsum
+                    cumsum += djkt[t][k][d]
+                    satisfied_cumsum += Model.Q[d, k, t]
+
+                    if t == nT[len(nT)]:
+                        Model.c1.add(Model.Z <= (previous + satisfied_cumsum / cumsum) * (math.exp((-alpha * t))))
+        cumsum = 0
+        satisfied_cumsum = 0
 
     # CONSTRAINT 1
     into = 0
@@ -248,12 +233,18 @@ for l in range(0, 3):
     graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l)
     excel_writer(nT, nK, djkt, Model, l)
 
+    print(" ")
+
     print("Scaled Solutions:")
     print("Result of objective 1 only: ", Model.objective1() * Model.scaling_factor[Model.objective1])
-    print("Result of objective 2 only: ", Model.objective2() * Model.scaling_factor[Model.objective2])
     print("Result of objective 3 only: ", Model.Z() * Model.scaling_factor[Model.Z])
+
+    print(" ")
 
     print("Unscaled Solutions:")
     print("Result of objective 1 only: ", Model.objective1())
-    print("Result of objective 2 only: ", Model.objective2())
     print("Result of objective 3 only: ", Model.Z())
+
+    print(" ")
+    print(" ************ ")
+    print(" ")
