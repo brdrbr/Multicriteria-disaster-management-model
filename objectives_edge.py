@@ -111,7 +111,7 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
                                    ((Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001), sense=1)
 
     # CONSTRAINT 0 for objective 3
-    alpha = 1
+    alpha = 0.8
     cumsum = 0
     satisfied_cumsum = 0
     previous = 0
