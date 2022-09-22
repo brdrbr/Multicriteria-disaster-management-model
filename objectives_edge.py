@@ -96,12 +96,12 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
         # OBJECTIVE 1
         Model.obj = Objective(expr=(Model.objective1 * Model.scaling_factor[Model.objective1]) +
                                    (-Model.Z * 0.001 * Model.scaling_factor[Model.Z]) +
-                                   (Model.gini * 0.001 * Model.scaling_factor[Model.gini]), sense=1)
+                                   (Model.gini * 0.0001 * Model.scaling_factor[Model.gini]), sense=1)
 
     elif l == 2:
         # OBJECTIVE 3
         Model.obj = Objective(expr=(Model.Z * Model.scaling_factor[Model.Z]) +
-                                   (-Model.gini * Model.scaling_factor[Model.gini] * 0.001) +
+                                   (-Model.gini * Model.scaling_factor[Model.gini] * 0.0001) +
                                    ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001), sense=-1)
 
     elif l == 4:
