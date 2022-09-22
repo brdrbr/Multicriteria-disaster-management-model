@@ -4,7 +4,7 @@ import math
 from utils import *
 import numpy as np
 
-for l in range(0, 3, 2):  # 0 for obj1, 2 for obj3
+for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
     Model.X = Var(nE, nK, nT, within=NonNegativeIntegers)
@@ -63,26 +63,52 @@ for l in range(0, 3, 2):  # 0 for obj1, 2 for obj3
                         Model.objective1 += i[1] * Model.X[e, k, t]
 
     Model.Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
+    Model.T = Var(nD, nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
 
     # scaling happens here
     Model.scaling_factor = Suffix(direction=Suffix.EXPORT)
     Model.scaling_expression = Suffix(direction=Suffix.LOCAL)
 
+    Model.c1 = ConstraintList()
+
+    difference = 0
+    count = len(nD)
+    mean = 0
+    for t in nT:
+        for k in nK:
+            tmp = np.array(list(Sikt[t][k].values()))
+            mean = np.sum(tmp) / count
+            for d1 in nD:
+                for d2 in nD:
+                    difference += Model.T[d1, d2, k, t] / (2 * count**2 * mean)
+                    Model.c1.add(Model.Q[d1, k, t] - Model.Q[d2, k, t] <= Model.T[d1, d2, k, t])
+                    Model.c1.add(Model.Q[d1, k, t] - Model.Q[d2, k, t] >= -Model.T[d1, d2, k, t])
+                    Model.c1.add(Model.T[d1, d2, k, t] >= 0)
+
+    Model.gini = difference / (len(nK) * len(nT))
+
     # TODO: Make them generic!
     Model.scaling_factor[Model.objective1] = 1/1000
-    Model.scaling_factor[Model.Z] = 1 #1/(0.62-0.1)
+    Model.scaling_factor[Model.Z] = 1
+    Model.scaling_factor[Model.gini] = 1
 
     if l == 0:
         # OBJECTIVE 1
         Model.obj = Objective(expr=(Model.objective1 * Model.scaling_factor[Model.objective1]) +
-                                   (-Model.Z * 0.001 * Model.scaling_factor[Model.Z]), sense=1)
-        Model.c1 = ConstraintList()
+                                   (-Model.Z * 0.001 * Model.scaling_factor[Model.Z]) +
+                                   (Model.gini * 0.001 * Model.scaling_factor[Model.gini]), sense=1)
 
     elif l == 2:
         # OBJECTIVE 3
-        Model.obj = Objective(expr=Model.Z * Model.scaling_factor[Model.Z] +
-                             ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001), sense=-1)
-        Model.c1 = ConstraintList()
+        Model.obj = Objective(expr=(Model.Z * Model.scaling_factor[Model.Z]) +
+                                   (-Model.gini * Model.scaling_factor[Model.gini] * 0.001) +
+                                   ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001), sense=-1)
+
+    elif l == 4:
+        # OBJECTIVE 4 (gini)
+        Model.obj = Objective(expr=(Model.gini * Model.scaling_factor[Model.gini]) +
+                                   (-Model.Z * Model.scaling_factor[Model.Z]) +
+                                   ((Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001), sense=1)
 
     # CONSTRAINT 0 for objective 3
     alpha = 1
@@ -238,12 +264,14 @@ for l in range(0, 3, 2):  # 0 for obj1, 2 for obj3
     print("Scaled Solutions:")
     print("Result of objective 1 only: ", Model.objective1() * Model.scaling_factor[Model.objective1])
     print("Result of objective 3 only: ", Model.Z() * Model.scaling_factor[Model.Z])
+    print("Result of objective gini only: ", Model.gini() * Model.scaling_factor[Model.gini])
 
     print(" ")
 
     print("Unscaled Solutions:")
     print("Result of objective 1 only: ", Model.objective1())
     print("Result of objective 3 only: ", Model.Z())
+    print("Result of objective gini only: ", Model.gini())
 
     print(" ")
     print(" ************ ")
