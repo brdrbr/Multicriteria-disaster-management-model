@@ -96,12 +96,12 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
         # OBJECTIVE 1
         Model.obj = Objective(expr=(Model.objective1 * Model.scaling_factor[Model.objective1]) +
                                    (-Model.Z * 0.001 * Model.scaling_factor[Model.Z]) +
-                                   (Model.gini * 0.0001 * Model.scaling_factor[Model.gini]), sense=1)
+                                   (Model.gini * 0.001 * Model.scaling_factor[Model.gini]), sense=1)
 
     elif l == 2:
         # OBJECTIVE 3
         Model.obj = Objective(expr=(Model.Z * Model.scaling_factor[Model.Z]) +
-                                   (-Model.gini * Model.scaling_factor[Model.gini] * 0.0001) +
+                                   (-Model.gini * Model.scaling_factor[Model.gini] * 0.001) +
                                    ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001), sense=-1)
 
     elif l == 4:
@@ -111,23 +111,28 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
                                    ((Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001), sense=1)
 
     # CONSTRAINT 0 for objective 3
-    alpha = 0.8
+    alpha = 0.5
     cumsum = 0
     satisfied_cumsum = 0
     previous = 0
+    part = 0
 
     for d in nD:
         for k in nK:
             for t in nT:
                 if djkt[t][k][d] > 0:
-                    previous = 0 if cumsum == 0 else satisfied_cumsum / cumsum
+                    previous += 0 if cumsum == 0 else  +(satisfied_cumsum / cumsum)
                     cumsum += djkt[t][k][d]
                     satisfied_cumsum += Model.Q[d, k, t]
 
-                    if t == nT[len(nT)]:
-                        Model.c1.add(Model.Z <= (previous + satisfied_cumsum / cumsum) * (math.exp((-alpha * t))))
-        cumsum = 0
-        satisfied_cumsum = 0
+                    part += ((satisfied_cumsum / cumsum)) * math.exp((-alpha * t))
+
+                    if t == len(nT)-1:
+                        Model.c1.add(Model.Z <= part)
+                        cumsum = 0
+                        satisfied_cumsum = 0
+                        previous = 0
+                        part = 0
 
     # CONSTRAINT 1
     into = 0

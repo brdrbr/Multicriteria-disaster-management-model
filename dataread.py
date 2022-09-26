@@ -7,7 +7,7 @@ Created on Tue Jul 19 09:39:45 2022
 import pandas as pd
 from pyomo.environ import *
 
-df = pd.read_excel(open('data2.xlsx', 'rb'), sheet_name='Data', engine='openpyxl')
+df = pd.read_excel(open('big_data2.xlsx', 'rb'), sheet_name='Data', engine='openpyxl')
 
 T = df.iloc[0, 0]
 K = df.iloc[0, 1]
@@ -39,7 +39,7 @@ for i in range(T):
     for j in range(K):
         Sikt[i].append({})
         for k in range(N):
-            Sikt[i][j][k+1] = df.iloc[ 1 + 6*(k), 3 + j + i*K]
+            Sikt[i][j][k+1] = df.iloc[ 1 + N*(k), 3 + j + i*K]
 
 djkt = []
 for i in range(T):
@@ -47,7 +47,7 @@ for i in range(T):
     for j in range(K):
         djkt[i].append({})
         for k in range(N):
-            djkt[i][j][k+1] = df.iloc[ 1 + 6*(k), 3 + T*K + j + i*K]
+            djkt[i][j][k+1] = df.iloc[ 1 + N*(k), 3 + T*K + j + i*K]
 
 dummy = []
 for i in range(1,N+1):
