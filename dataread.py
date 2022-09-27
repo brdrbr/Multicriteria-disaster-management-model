@@ -7,7 +7,7 @@ Created on Tue Jul 19 09:39:45 2022
 import pandas as pd
 from pyomo.environ import *
 
-df = pd.read_excel(open('big_data2.xlsx', 'rb'), sheet_name='Data', engine='openpyxl')
+df = pd.read_excel(open('small_data2.xlsx', 'rb'), sheet_name='Data', engine='openpyxl')
 
 T = df.iloc[0, 0]
 K = df.iloc[0, 1]

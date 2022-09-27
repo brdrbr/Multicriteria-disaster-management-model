@@ -4,6 +4,10 @@ import math
 from utils import *
 import numpy as np
 
+obj1_results =[]
+obj3_results =[]
+obj5_results =[]
+
 for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
@@ -88,27 +92,28 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
     Model.gini = difference / (len(nK) * len(nT))
 
     # TODO: Make them generic!
-    Model.scaling_factor[Model.objective1] = 1/1000
-    Model.scaling_factor[Model.Z] = 1
-    Model.scaling_factor[Model.gini] = 1
+    Model.scaling_factor[Model.objective1] = 1/(725 - 247)
+    Model.scaling_factor[Model.Z] = 1/(0.550181659676652)
+    Model.scaling_factor[Model.gini] = 1#/(0.7695057189542487)
 
     if l == 0:
         # OBJECTIVE 1
-        Model.obj = Objective(expr=(Model.objective1 * Model.scaling_factor[Model.objective1]) +
+
+        Model.obj = Objective(expr=((Model.objective1 - 247) * Model.scaling_factor[Model.objective1])+
                                    (-Model.Z * 0.001 * Model.scaling_factor[Model.Z]) +
-                                   (Model.gini * 0.001 * Model.scaling_factor[Model.gini]), sense=1)
+                                   ((Model.gini) * 0.001 * Model.scaling_factor[Model.gini]), sense=1) #min cost
 
     elif l == 2:
         # OBJECTIVE 3
         Model.obj = Objective(expr=(Model.Z * Model.scaling_factor[Model.Z]) +
-                                   (-Model.gini * Model.scaling_factor[Model.gini] * 0.001) +
-                                   ((-Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001), sense=-1)
+                                   (-(Model.gini) * Model.scaling_factor[Model.gini] * 0.001) +
+                                   ((-(Model.objective1 - 247) * Model.scaling_factor[Model.objective1]) * 0.001), sense=-1) #max demand
 
     elif l == 4:
         # OBJECTIVE 4 (gini)
-        Model.obj = Objective(expr=(Model.gini * Model.scaling_factor[Model.gini]) +
+        Model.obj = Objective(expr=((Model.gini) * Model.scaling_factor[Model.gini]) +
                                    (-Model.Z * Model.scaling_factor[Model.Z]) +
-                                   ((Model.objective1 * Model.scaling_factor[Model.objective1]) * 0.001), sense=1)
+                                   (((Model.objective1 - 247) * Model.scaling_factor[Model.objective1]) * 0.001), sense=1) #min gini
 
     # CONSTRAINT 0 for objective 3
     alpha = 0.5
@@ -267,9 +272,9 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
     print(" ")
 
     print("Scaled Solutions:")
-    print("Result of objective 1 only: ", Model.objective1() * Model.scaling_factor[Model.objective1])
+    print("Result of objective 1 only: ", (Model.objective1() - 247) * Model.scaling_factor[Model.objective1])
     print("Result of objective 3 only: ", Model.Z() * Model.scaling_factor[Model.Z])
-    print("Result of objective gini only: ", Model.gini() * Model.scaling_factor[Model.gini])
+    print("Result of objective gini only: ", (Model.gini()) * Model.scaling_factor[Model.gini])
 
     print(" ")
 
@@ -278,6 +283,14 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
     print("Result of objective 3 only: ", Model.Z())
     print("Result of objective gini only: ", Model.gini())
 
+    obj1_results.append(Model.objective1())
+    obj3_results.append(Model.Z())
+    obj5_results.append(Model.gini())
+
     print(" ")
     print(" ************ ")
     print(" ")
+
+print(obj1_results)
+print(obj3_results)
+print(obj5_results)
