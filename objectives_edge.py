@@ -11,7 +11,7 @@ obj5_results =[]
 for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
-    Model.X = Var(nE, nK, nT, within=NonNegativeIntegers)
+    Model.X = Var(nE, nK, nT, within=NonNegativeReals)
     for t in nT:
         for k in nK:
             Model.X[11, k, t] = 0
@@ -22,10 +22,10 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
             Model.X[66, k, t] = 0
 
     # Demand of commodity k at node j in period t
-    Model.D = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeIntegers)
+    Model.D = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
 
     # Unsatisfied demand of commodity k at node j in period t
-    Model.H = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeIntegers)  # 0 for t-1 = 0 case.
+    Model.H = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)  # 0 for t-1 = 0 case.
     for k in nK:
         Model.H[1, k, 0] = 0
         Model.H[2, k, 0] = 0
@@ -35,10 +35,10 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
         Model.H[6, k, 0] = 0
 
     # Q = D - H (satisfied demand amount)
-    Model.Q = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeIntegers)
+    Model.Q = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
 
     # Units of resources allocated to blocked arc e in period t
-    Model.W = Var(nE, nT, bounds=(0, np.inf), within=NonNegativeIntegers)
+    Model.W = Var(nE, nT, bounds=(0, np.inf), within=NonNegativeReals)
     for t in nT:
         Model.W[11, t] = 0
         Model.W[22, t] = 0
@@ -78,6 +78,7 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
     difference = 0
     count = len(nD)
     mean = 0
+    alpha=0.5
     for t in nT:
         for k in nK:
             tmp = np.array(list(Sikt[t][k].values()))
@@ -85,35 +86,39 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
             for d1 in nD:
                 for d2 in nD:
                     difference += Model.T[d1, d2, k, t] / (2 * count**2 * mean)
-                    Model.c1.add(Model.Q[d1, k, t] - Model.Q[d2, k, t] <= Model.T[d1, d2, k, t])
-                    Model.c1.add(Model.Q[d1, k, t] - Model.Q[d2, k, t] >= -Model.T[d1, d2, k, t])
-                    Model.c1.add(Model.T[d1, d2, k, t] >= 0)
+                    if djkt[t][k][d1] >0 and djkt[t][k][d2] >0:
+                        Model.c1.add(Model.Q[d1, k, t] >= 0)
+                        Model.c1.add((Model.Q[d1, k, t]/djkt[t][k][d1] - Model.Q[d2, k, t]/djkt[t][k][d2])*math.exp(-alpha*t) <= Model.T[d1, d2, k, t])
+                        Model.c1.add((Model.Q[d1, k, t]/djkt[t][k][d1] - Model.Q[d2, k, t]/djkt[t][k][d2])*math.exp(-alpha*t) >= -Model.T[d1, d2, k, t])
+                        Model.c1.add(Model.T[d1, d2, k, t] >= 0)
+
+    #Model.c1.pprint()
 
     Model.gini = difference / (len(nK) * len(nT))
 
     # TODO: Make them generic!
-    Model.scaling_factor[Model.objective1] = 1/(725 - 247)
-    Model.scaling_factor[Model.Z] = 1/(0.550181659676652)
-    Model.scaling_factor[Model.gini] = 1#/(0.7695057189542487)
+    Model.scaling_factor[Model.objective1] = 1/(634 - 141)
+    Model.scaling_factor[Model.Z] = 1/(0.682214185936679)
+    Model.scaling_factor[Model.gini] = 1/(0.7949346405228764-0.666360294117646)
 
     if l == 0:
         # OBJECTIVE 1
 
-        Model.obj = Objective(expr=((Model.objective1 - 247) * Model.scaling_factor[Model.objective1])+
+        Model.obj = Objective(expr=((Model.objective1 - 141) * Model.scaling_factor[Model.objective1])+
                                    (-Model.Z * 0.001 * Model.scaling_factor[Model.Z]) +
-                                   ((Model.gini) * 0.001 * Model.scaling_factor[Model.gini]), sense=1) #min cost
+                                   ((Model.gini - 0.666360294117646) * 0.001 * Model.scaling_factor[Model.gini]), sense=1) #min cost
 
     elif l == 2:
         # OBJECTIVE 3
         Model.obj = Objective(expr=(Model.Z * Model.scaling_factor[Model.Z]) +
-                                   (-(Model.gini) * Model.scaling_factor[Model.gini] * 0.001) +
-                                   ((-(Model.objective1 - 247) * Model.scaling_factor[Model.objective1]) * 0.001), sense=-1) #max demand
+                                   (-(Model.gini-0.666360294117646) * Model.scaling_factor[Model.gini] * 0.001) +
+                                   ((-(Model.objective1 - 141) * Model.scaling_factor[Model.objective1]) * 0.001), sense=-1) #max demand
 
     elif l == 4:
         # OBJECTIVE 4 (gini)
-        Model.obj = Objective(expr=((Model.gini) * Model.scaling_factor[Model.gini]) +
-                                   (-Model.Z * Model.scaling_factor[Model.Z]) +
-                                   (((Model.objective1 - 247) * Model.scaling_factor[Model.objective1]) * 0.001), sense=1) #min gini
+        Model.obj = Objective(expr=((Model.gini-0.666360294117646) * Model.scaling_factor[Model.gini]) +
+                                   (-Model.Z * Model.scaling_factor[Model.Z]) * 0.001 +
+                                   (((Model.objective1 - 141) * Model.scaling_factor[Model.objective1]) * 0.001), sense=1) #min gini
 
     # CONSTRAINT 0 for objective 3
     alpha = 0.5
@@ -126,7 +131,7 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
         for k in nK:
             for t in nT:
                 if djkt[t][k][d] > 0:
-                    previous += 0 if cumsum == 0 else  +(satisfied_cumsum / cumsum)
+                    previous += 0 if cumsum == 0 else +(satisfied_cumsum / cumsum)
                     cumsum += djkt[t][k][d]
                     satisfied_cumsum += Model.Q[d, k, t]
 
@@ -267,14 +272,14 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
     print(f'\nScaled Objective {l+1} Solution = ', Model.obj())
 
     graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l)
-    excel_writer(nT, nK, djkt, Model, l)
+    excel_writer(nT, nK, nS, djkt, Model, l)
 
     print(" ")
 
     print("Scaled Solutions:")
-    print("Result of objective 1 only: ", (Model.objective1() - 247) * Model.scaling_factor[Model.objective1])
+    print("Result of objective 1 only: ", (Model.objective1() - 141) * Model.scaling_factor[Model.objective1])
     print("Result of objective 3 only: ", Model.Z() * Model.scaling_factor[Model.Z])
-    print("Result of objective gini only: ", (Model.gini()) * Model.scaling_factor[Model.gini])
+    print("Result of objective gini only: ", (Model.gini()-0.666360294117646) * Model.scaling_factor[Model.gini])
 
     print(" ")
 
@@ -290,6 +295,8 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
     print(" ")
     print(" ************ ")
     print(" ")
+
+    Model.Z.pprint()
 
 print(obj1_results)
 print(obj3_results)

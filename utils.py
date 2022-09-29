@@ -3,7 +3,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
 from dataread import uijt
-
+import math
 
 def update_blocked_capacities(uijt, blocked):
     uijt_tmp = [i[2] for i in uijt[0][0]]
@@ -120,7 +120,7 @@ def graph_drawer(nT, nK, nN, nS, Sikt, djkt, Model, l):
         commoditycounter = 1
 
 
-def excel_writer(nT, nK, djkt, Model, l):
+def excel_writer(nT, nK, nS, djkt, Model, l):
     data = {}
     demandnodes = []
     for i in nT:
@@ -132,31 +132,42 @@ def excel_writer(nT, nK, djkt, Model, l):
     df = pd.DataFrame(data)
     df[""] = demandnodes
 
+    alpha = 0.5
+
     for i in nT:
         for j in nK:
+
             djktlist = []
             Dlist = []
             percentage = []
             Hlist = []
-            NetList = []
+            QList = []
+            discount = []
+
             for key, value in djkt[i][j].items():
                 if key in demandnodes:
                     djktlist.append(value)
-            for (key, value), (key2, value2) in zip(Model.D.get_values().items(), Model.H.get_values().items()):
-                if key[0] in demandnodes and key[0] == key2[0] and j == key[1] and i == key[2]:
-                    Dlist.append(int(value))  # total demand - unsatisfied demand
-                    Hlist.append(int(value2))
-                    NetList.append(int(value) - int(value2))
+            for (key, value), (key2, value2), (key3, value3) in zip(Model.D.get_values().items(), Model.H.get_values().items(), Model.Q.get_values().items()):
+                if key[0] in demandnodes and key[0] == key2[0] and j == key[1] and i == key[2] and key[0] == key3[0]:
+                    Dlist.append(value)  # demand obtained in this period
+                    Hlist.append(value2)
+                    QList.append(value3)
+                    discount.append(math.exp(-alpha * i))
 
             df["djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = djktlist
             df["Djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = Dlist
             df["Hjkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = Hlist
-            df["Satisfied demand" + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = [a - b for a, b in zip(Dlist, Hlist)]
+            df["Satisfied demand" + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = QList
 
             for m in range(len(djktlist)):
-                percentage.append(str(str(round((NetList[m] / Dlist[m] * 100), 2)) + "%"))
+                percentage.append((QList[m] / Dlist[m] * 100))
 
             df["Percentage Satisfied" + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = percentage
+
+            df["Discount"+ "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = discount
+
+            df["Satisfied discounted percentage" + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = [q * math.exp(-alpha * i)
+                                                                                              for q in percentage]
 
     df.set_index('', drop=True, inplace=True)
 
