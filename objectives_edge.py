@@ -8,7 +8,7 @@ obj1_results =[]
 obj3_results =[]
 obj5_results =[]
 
-for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
+for l in [4]: #range(0, 5, 2):  # 0 for obj1, 2 for obj3
     Model = ConcreteModel()
     # Amount of commodity k sent on arc e in period t
     Model.X = Var(nE, nK, nT, within=NonNegativeReals)
@@ -79,20 +79,50 @@ for l in range(0, 5, 2):  # 0 for obj1, 2 for obj3
     count = len(nD)
     mean = 0
     alpha=0.5
+    cumsum = {}
+    cumsum_dict = {}
+    satisfied_cumsum_d1 = 0
+    satisfied_cumsum_d2 = {}
+    
     for t in nT:
         for k in nK:
             tmp = np.array(list(Sikt[t][k].values()))
             mean = np.sum(tmp) / count
             for d1 in nD:
+                if t == 0:
+                    cumsum[d1] = djkt[t][k][d1]
+                else:
+                    cumsum[d1] += djkt[t][k][d1]
+
+        cumsum_fin = cumsum.copy()
+        cumsum_dict[t] = cumsum_fin
+
+    satisfied_cumsum = {}
+    satisfied_cumsum_dict = {}
+    for t in nT:
+        for k in nK:
+            for d1 in nD:
+                if t == 0:
+                    satisfied_cumsum[d1] = Model.Q[d1,k,t]
+                else:
+                    satisfied_cumsum[d1] += Model.Q[d1,k,t]
+
+        satisfied_cumsum_fin = satisfied_cumsum.copy()
+        satisfied_cumsum_dict[t] = satisfied_cumsum_fin
+
+    for t in nT:
+        for k in nK:
+            for d1 in nD:
                 for d2 in nD:
-                    difference += Model.T[d1, d2, k, t] / (2 * count**2 * mean)
-                    if djkt[t][k][d1] >0 and djkt[t][k][d2] >0:
+                    if djkt[t][k][d1] > 0 and djkt[t][k][d2] > 0:
+
+                        difference += Model.T[d1, d2, k, t] / (2 * count**2 * mean)
                         Model.c1.add(Model.Q[d1, k, t] >= 0)
-                        Model.c1.add((Model.Q[d1, k, t]/djkt[t][k][d1] - Model.Q[d2, k, t]/djkt[t][k][d2])*math.exp(-alpha*t) <= Model.T[d1, d2, k, t])
-                        Model.c1.add((Model.Q[d1, k, t]/djkt[t][k][d1] - Model.Q[d2, k, t]/djkt[t][k][d2])*math.exp(-alpha*t) >= -Model.T[d1, d2, k, t])
+                        Model.c1.add((satisfied_cumsum_dict[t][d1]/cumsum_dict[t][d1] - satisfied_cumsum_dict[t][d2]/cumsum_dict[t][d2])*math.exp(-alpha*t) <= Model.T[d1, d2, k, t])
+                        Model.c1.add((satisfied_cumsum_dict[t][d1]/cumsum_dict[t][d1] - satisfied_cumsum_dict[t][d2]/cumsum_dict[t][d2])*math.exp(-alpha*t) >= -Model.T[d1, d2, k, t])
                         Model.c1.add(Model.T[d1, d2, k, t] >= 0)
 
-    #Model.c1.pprint()
+    Model.c1.pprint()
 
     Model.gini = difference / (len(nK) * len(nT))
 
