@@ -4,9 +4,9 @@ import numpy as np
 
 #OLD VERSION
 
-nS = RangeSet(1, 6)  # supply nodes ( I included transition & demand nodes here but gave them 0 supply )
-nD = RangeSet(1, 6)  # demand nodes ( I included transition & supply nodes here but gave them 0 demand )
-nN = RangeSet(1, 6)  # all nodes
+nS = RangeSet(1, 8)  # supply nodes ( I included transition & demand nodes here but gave them 0 supply )
+nD = RangeSet(1, 8)  # demand nodes ( I included transition & supply nodes here but gave them 0 demand )
+nN = RangeSet(1, 8)  # all nodes
 # Mapping edges with their origin-destination node pairs
 # keys represent edge number e, values represent the [origin,destination] routes.
 edge_dict = {11: [1, 1], 12: [1, 2],
@@ -26,7 +26,14 @@ edge_dict = {11: [1, 1], 12: [1, 2],
              55: [5, 5], 56: [5, 6],
              61: [6, 1], 62: [6, 2],
              63: [6, 3], 64: [6, 4],
-             65: [6, 5], 66: [6, 6]}
+             65: [6, 5], 66: [6, 6],
+             71: [7, 1], 72: [7, 2],
+             73: [7, 3], 74: [7, 4],
+             75: [7, 5], 76: [7, 6],
+             81: [8, 1], 82: [8, 2],
+             83: [8, 3], 84: [8, 4],
+             85: [8, 5], 86: [8, 6]}
+
 nE = list(edge_dict.keys())  # list of edges
 # Set of blocked roads
 # arc a
