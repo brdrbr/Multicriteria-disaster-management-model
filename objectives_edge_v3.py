@@ -1,4 +1,5 @@
 """Version3 on separately discounting periods and considers unsatisfied demands"""
+# Here, focus on the cumulative discounting of unsatisfied demands
 
 from dataread import *
 from pyomo.opt import SolverFactory
@@ -179,8 +180,8 @@ for l in range(0, 7, 2):  # 0 for obj1, 2 for obj3, 4 for obj gini, 6 for obj un
         for k in nK:
             for t in nT:
                 if djkt[t][k][d] > 0:
-                    cumsum = djkt[t][k][d]
-                    satisfied_cumsum = Model.Q[d, k, t]
+                    cumsum += djkt[t][k][d] # cumulative sum
+                    satisfied_cumsum += Model.Q[d, k, t]
                     unsatisfied_cumsum = cumsum - satisfied_cumsum
 
                     part += ((satisfied_cumsum / cumsum)) * math.exp((-alpha * t))
@@ -352,8 +353,3 @@ for l in range(0, 7, 2):  # 0 for obj1, 2 for obj3, 4 for obj gini, 6 for obj un
     print(" ")
     print(" ************ ")
     print(" ")
-
-print(obj1_results)
-print(obj3_results)
-print(obj5_results)
-print(obj7_results)
