@@ -123,14 +123,14 @@ for l in range(0, 7, 2):  # 0 for obj1, 2 for obj3, 4 for obj gini, 6 for obj un
     Model.gini = difference / (len(nK) * len(nT))
 
     # TODO: Make them generic!
-    max1 = 701.0825298228901
-    min1 = 148.0
-    max3 = 0.62955857291689
-    min3 = 0.1
-    max5 = 0.005510527853700961
-    min5 = -1.1765422144540742e-19
-    max7 = 1.93762215676693
-    min7 = 1.25559988958859
+    max1 = 789.8644232097857
+    min1 = 132.99999999999997
+    max3 = 0.685171555641528
+    min3 = 2.01742887993721e-16
+    max5 = 0.005854861821150035
+    min5 = 0.0
+    max7 = 1.97441010088408
+    min7 = 1.27624014334884
 
     Model.scaling_factor[Model.objective1] = 1 / (max1 - min1)
     Model.scaling_factor[Model.Z] = 1 / (max3 - min3)
