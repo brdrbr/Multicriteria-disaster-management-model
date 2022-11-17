@@ -132,7 +132,7 @@ def excel_writer(nT, nK, nS, djkt, Model, l):
     df = pd.DataFrame(data)
     df[""] = demandnodes
 
-    alpha = 0.5
+    alpha = 0.3
 
     for i in nT:
         for j in nK:
@@ -152,7 +152,7 @@ def excel_writer(nT, nK, nS, djkt, Model, l):
                     Dlist.append(value)  # demand obtained in this period
                     Hlist.append(value2)
                     QList.append(value3)
-                    discount.append(math.exp(-alpha * i))
+                    discount.append(math.exp((alpha)))
 
             df["djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = djktlist
             df["Djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = Dlist
@@ -161,13 +161,6 @@ def excel_writer(nT, nK, nS, djkt, Model, l):
 
             for m in range(len(djktlist)):
                 percentage.append((QList[m] / Dlist[m] * 100))
-
-            df["Percentage Satisfied" + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = percentage
-
-            df["Discount"+ "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = discount
-
-            df["Satisfied discounted percentage" + "(C" + str(j + 1) + "T" + str(i + 1) + ")"] = [q * math.exp(-alpha * i)
-                                                                                              for q in percentage]
 
     df.set_index('', drop=True, inplace=True)
 
