@@ -242,12 +242,15 @@ for counter_scaling in range(0, 2):
                         demands_t += djkt[t][k][d]
                         satisfied_sum += Model.Q[d, k, t]
 
-                        #unsatisfied_sum = demands_t - satisfied_sum
+                        #unsatisfied_sum += demands_t - satisfied_sum
                         unsatisfied_sum += Model.H[d, k, t]
 
-                        unsat_part = ((unsatisfied_sum / demands_t)) * math.exp((alpha * (len(nT) - t))) #* math.exp((alpha))
+                        if t == 0:
+                            discount = math.exp((alpha * 1))
+                        else:
+                            discount = math.exp((alpha * t))
 
-                        prev_unsat = unsat_part
+                        unsat_part = ((unsatisfied_sum / demands_t)) * math.exp((alpha * (len(nT) - t))) + Model.H[d, k, t] * discount
                         cum_unsat_part += unsat_part #* math.exp((alpha * (len(nT) - t - 1)))
 
                     demands_t = 0
