@@ -228,36 +228,34 @@ for counter_scaling in range(0, 2):
         # CONSTRAINT 0* for minimizing unsatisfied demand
         unsatisfied_sum = 0
         unsat_part = 0
-        satisfied_sum = 0
-        prev_unsat = 0
         demands_t = 0
         cum_unsat_part = 0
-        unsatisfied_cumsum = 0
 
         for d in nD:
             for k in nK:
                 for t in nT:
 
                     if djkt[t][k][d] > 0:
-                        demands_t += djkt[t][k][d]
-                        satisfied_sum += Model.Q[d, k, t]
 
-                        #unsatisfied_sum += demands_t - satisfied_sum
+                        demands_t += djkt[t][k][d]
                         unsatisfied_sum += Model.H[d, k, t]
 
-                        if t == 0:
-                            discount = math.exp((alpha * 1))
-                        else:
-                            discount = math.exp((alpha * t))
-
-                        unsat_part = ((unsatisfied_sum / demands_t)) * math.exp((alpha * (len(nT) - t))) + Model.H[d, k, t] * discount
+                        unsat_part = (unsatisfied_sum / demands_t) * math.exp((alpha)) #/ demands_t
                         cum_unsat_part += unsat_part #* math.exp((alpha * (len(nT) - t - 1)))
+
+                        for t2 in range(t, len(nT)):
+                            # print(t2, len(nT)-t2-1)
+                            if t == 0:
+                                unsat_part = Model.H[d, k, t] * math.exp((alpha * (len(nT) - t2 - t)))
+                            elif t < len(nT):
+                                unsat_part = Model.H[d, k, t] * math.exp((alpha * (len(nT) - t2 - t + 1)))
+
+                            cum_unsat_part += unsat_part
 
                     demands_t = 0
                     satisfied_sum = 0
                     unsatisfied_sum = 0
 
-        print(cum_unsat_part)
         Model.c1.add(Model.unsatisfied_Z >= cum_unsat_part)
 
         # CONSTRAINT 1
