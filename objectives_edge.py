@@ -1,6 +1,3 @@
-"""Version3 on separately discounting periods and considers unsatisfied demands"""
-# Here, focus on the cumulative discounting of unsatisfied demands - exponential discounting
-
 from dataread import *
 from pyomo.opt import SolverFactory
 from utils import *
@@ -215,7 +212,7 @@ for counter_scaling in range(0, 2):
             for k in nK:
                 for t in nT:
                     if djkt[t][k][d] > 0:
-                        cumsum += djkt[t][k][d] # cumulative sum
+                        cumsum += djkt[t][k][d]  # cumulative sum
                         satisfied_cumsum += Model.Q[d, k, t]
                         part += ((satisfied_cumsum / cumsum)) * math.exp((-alpha * t))
 
@@ -227,10 +224,10 @@ for counter_scaling in range(0, 2):
 
         # CONSTRAINT 0* for minimizing unsatisfied demand
         unsatisfied_sum = 0
-        unsat_part = 0
         demands_t = 0
         cum_unsat_part = 0
         tmp = 0
+        counter = 0
 
         for t in nT:
             for d in nD:
@@ -241,17 +238,17 @@ for counter_scaling in range(0, 2):
                         demands_t += djkt[t][k][d]
                         unsatisfied_sum += Model.H[d, k, t]
 
-                        unsat_part = (unsatisfied_sum / demands_t)
-                        cum_unsat_part += unsat_part # * math.exp(alpha)
+                        cum_unsat_part = (unsatisfied_sum / demands_t) * math.exp(alpha)
 
-                    demands_t = 0
-                    satisfied_sum = 0
-                    unsatisfied_sum = 0
+                        counter += 1
+                        if counter == len(nT):
+                            tmp += cum_unsat_part
 
-            cum_unsat_part *= math.exp(alpha)
-            tmp += cum_unsat_part
-            cum_unsat_part = 0
+            demands_t = 0
+            unsatisfied_sum = 0
+            counter = 0
 
+        print(tmp)
         Model.c1.add(Model.unsatisfied_Z >= tmp)
 
         # CONSTRAINT 1
@@ -394,6 +391,7 @@ for counter_scaling in range(0, 2):
             print(" ************ ")
 
         else:
+            excel_writer(nT, nK, nS, djkt, Model, l)
             print(f'\nUnscaled Objective {l + 1} Solution = ', Model.obj())
             print(" ")
             print(f"Solutions Considering Objective {l+1}:")
