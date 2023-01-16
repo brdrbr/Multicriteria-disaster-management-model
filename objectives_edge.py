@@ -2,16 +2,15 @@ from dataread import *
 from pyomo.opt import SolverFactory
 from utils import *
 import numpy as np
+from pyomo.opt import SolverFactory
+from dataread import *
 
-obj1_results = []
-obj3_results = []
-obj5_results = []
-obj7_results = []
+obj1_results, obj3_results, obj5_results = [], [], []
 
 # for generic scaling of the solutions
 for counter_scaling in range(0, 2):
 
-    for l in range(0, 7, 2):  # 0 for obj1, 2 for obj3, 4 for obj gini, 6 for obj unsatisfied
+    for l in range(0, 3):  # 0 for min cost, 1 for min unsatisfied, 2 for min gini
         Model = ConcreteModel()
         # Amount of commodity k sent on arc e in period t
         Model.X = Var(nE, nK, nT, within=NonNegativeReals)
@@ -70,7 +69,6 @@ for counter_scaling in range(0, 2):
                             Model.objective1 += i[1] * Model.X[e, k, t]
 
         Model.Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
-        Model.unsatisfied_Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
         Model.T = Var(nD, nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
 
         if counter_scaling != 0:
@@ -130,13 +128,10 @@ for counter_scaling in range(0, 2):
             min3 = np.min(obj3_results)
             max5 = np.max(obj5_results)
             min5 = np.min(obj5_results)
-            max7 = np.max(obj7_results)
-            min7 = np.min(obj7_results)
 
             Model.scaling_factor[Model.objective1] = 1 / (max1 - min1)
             Model.scaling_factor[Model.Z] = 1 / (max3 - min3)
             Model.scaling_factor[Model.gini] = 1 / (max5 - min5)
-            Model.scaling_factor[Model.unsatisfied_Z] = 1 / (max7 - min7)
 
         if l == 0:
 
@@ -144,63 +139,42 @@ for counter_scaling in range(0, 2):
             if counter_scaling != 0:
 
                 Model.obj = Objective(expr=(((Model.objective1 - min1) * Model.scaling_factor[Model.objective1]) +
-                                       (-(Model.Z - min3) * 0.001 * Model.scaling_factor[Model.Z]) +
-                                       ((Model.unsatisfied_Z - min7) * 0.001 * Model.scaling_factor[Model.unsatisfied_Z]) +
-                                       ((Model.gini - min5) * 0.001 * Model.scaling_factor[Model.gini])), sense=1)  # min cost
+                                       ((Model.Z - min3) * 0.001 * Model.scaling_factor[Model.Z]) +
+                                       ((Model.gini - min5) * 0.001 * Model.scaling_factor[Model.gini])),
+                                      sense=1)  # min cost
             else:
                 Model.obj = Objective(expr=(Model.objective1 +
-                                            (-Model.Z * 0.001) +
-                                            Model.unsatisfied_Z * 0.00001 +
+                                            (Model.Z * 0.001) +
                                             (Model.gini * 0.001)),
                                       sense=1)  # min cost
 
-        elif l == 2:
+        elif l == 1:
 
-            # OBJECTIVE 3 fairness
+            # OBJECTIVE 2 min unsatisfied
             if counter_scaling != 0:
                 Model.obj = Objective(expr=(((Model.Z - min3) * Model.scaling_factor[Model.Z]) +
-                                       (-(Model.gini - min5) * Model.scaling_factor[Model.gini] * 0.001) +
-                                       ((-(Model.objective1 - min1) * Model.scaling_factor[Model.objective1]) * 0.001)+
-                                       (-(Model.unsatisfied_Z - min7) * 0.0001 * Model.scaling_factor[Model.unsatisfied_Z])),
-                                        sense=-1)  # max fairness
+                                       ((Model.gini - min5) * Model.scaling_factor[Model.gini] * 0.001) +
+                                       (((Model.objective1 - min1) * Model.scaling_factor[Model.objective1]) * 0.0001)),
+                                        sense=1)  # min unsatisfied
             else:
-                Model.obj = Objective(expr=(-Model.objective1 * 0.000001 +
+                Model.obj = Objective(expr=(Model.objective1 * 0.001 +
                                             Model.Z +
-                                            -Model.unsatisfied_Z * 0.00001 +
-                                            (-Model.gini * 0.001)),
-                                      sense=-1)  # max fairness
+                                            (Model.gini * 0.0001)),
+                                      sense=1)  # min unsatisfied
 
-        elif l == 4:
+        elif l == 2:
 
-            # OBJECTIVE 4 (gini)
+            # OBJECTIVE 3 min gini
             if counter_scaling != 0:
                 Model.obj = Objective(expr=(((Model.gini - min5) * Model.scaling_factor[Model.gini]) +
-                                       (-(Model.Z - min3) * Model.scaling_factor[Model.Z]) * 0.001 +
-                                       (((Model.objective1 - min1) * Model.scaling_factor[Model.objective1]) * 0.001)+
-                                       ((Model.unsatisfied_Z - min7) * 0.0001 * Model.scaling_factor[Model.unsatisfied_Z])),
+                                       ((Model.Z - min3) * Model.scaling_factor[Model.Z]) * 0.001 +
+                                       (((Model.objective1 - min1) * Model.scaling_factor[Model.objective1]) * 0.0001)),
                                         sense=1)  # min gini
             else:
-                Model.obj = Objective(expr=(Model.objective1 * 0.000001 +
-                                            (-Model.Z * 0.001) +
-                                            Model.unsatisfied_Z * 0.00001 +
-                                            (Model.gini)),
+                Model.obj = Objective(expr=(Model.objective1 * 0.0001 +
+                                            (Model.Z * 0.001) +
+                                            Model.gini),
                                       sense=1)  # min gini
-
-        elif l == 6:
-
-            # objective 7 min unsatisfied demand
-            if counter_scaling != 0:
-                Model.obj = Objective(expr=(((Model.gini - min5) * Model.scaling_factor[Model.gini] * 0.001) +
-                                        (-(Model.Z - min3) * Model.scaling_factor[Model.Z]) * 0.001 +
-                                        (((Model.objective1 - min1) * Model.scaling_factor[Model.objective1]) * 0.001))+
-                                        ((Model.unsatisfied_Z - min7) * Model.scaling_factor[Model.unsatisfied_Z]),
-                                  sense=1)  # min unsatisfied demand
-            else:
-                Model.obj = Objective(expr=(Model.objective1 * 0.000001 +
-                                            (-Model.Z * 0.001) +
-                                            Model.unsatisfied_Z +
-                                            (Model.gini * 0.001)),
-                                      sense=1)  # min unsatisfied demand
 
         # CONSTRAINT 0 for maximizing fairness
         alpha = 0.3
@@ -208,48 +182,54 @@ for counter_scaling in range(0, 2):
         satisfied_cumsum = 0
         part = 0
 
+        # Summation over time
         for d in nD:
             for k in nK:
                 for t in nT:
                     if djkt[t][k][d] > 0:
                         cumsum += djkt[t][k][d]  # cumulative sum
                         satisfied_cumsum += Model.Q[d, k, t]
-                        part += ((satisfied_cumsum / cumsum)) * math.exp((-alpha * t))
+                        part += (((cumsum - satisfied_cumsum) / cumsum)) * math.exp((alpha))
 
                         if t == len(nT) - 1:
-                            Model.c1.add(Model.Z <= part)
+                            print(part)
+                            Model.c1.add(Model.Z >= part)
                             cumsum = 0
                             satisfied_cumsum = 0
                             part = 0
 
-        # CONSTRAINT 0* for minimizing unsatisfied demand
-        unsatisfied_sum = 0
-        demands_t = 0
-        cum_unsat_part = 0
-        tmp = 0
-        counter = 0
-
+        # Summation over nodes
+        """unsatisfied_percentage = 0
+        cumsum_dict_v2 = {}
+        constraint = []
         for t in nT:
-            for d in nD:
-                for k in nK:
-
+            for k in nK:
+                for d in nD:
                     if djkt[t][k][d] > 0:
 
-                        demands_t += djkt[t][k][d]
-                        unsatisfied_sum += Model.H[d, k, t]
+                        counter = 0
+                        if d in cumsum_dict_v2.keys():
+                            cumsum_dict_v2[d] += cumsum_dict[t][d]
+                            counter += 1
+                        else:
+                            cumsum_dict_v2[d] = cumsum_dict[t][d]
+                            counter += 1
 
-                        cum_unsat_part = (unsatisfied_sum / demands_t) * math.exp(alpha)
+                for key in cumsum_dict_v2.keys():
+                    unsatisfied_percentage += Model.H[key, k, t] / cumsum_dict_v2[key]
 
-                        counter += 1
-                        if counter == len(nT):
-                            tmp += cum_unsat_part
+                unsatisfied_percentage = (unsatisfied_percentage * math.exp(alpha))
+                constraint.append(unsatisfied_percentage)
+                unsatisfied_percentage = 0
 
-            demands_t = 0
-            unsatisfied_sum = 0
-            counter = 0
+        constraint_fin = 0
+        for i in constraint:
+            constraint_fin += i
+            #Model.c1.add(Model.Z >= i)
 
-        print(tmp)
-        Model.c1.add(Model.unsatisfied_Z >= tmp)
+        Model.c1.add(Model.Z >= constraint_fin)"""
+
+        # CONSTRAINTS
 
         # CONSTRAINT 1
         into = 0
@@ -386,7 +366,6 @@ for counter_scaling in range(0, 2):
             print("Scaled Result of objective 1 only: ", (Model.objective1() - min1) * Model.scaling_factor[Model.objective1])
             print("Scaled Result of objective 3 only: ",(Model.Z() - min3) * Model.scaling_factor[Model.Z])
             print("Scaled Result of objective 5 only: ",(Model.gini() - min5) * Model.scaling_factor[Model.gini])
-            print("Scaled Result of objective 7 only: ",(Model.unsatisfied_Z() - min7) * Model.scaling_factor[Model.unsatisfied_Z])
             print(" ")
             print(" ************ ")
 
@@ -398,11 +377,9 @@ for counter_scaling in range(0, 2):
             print("Unscaled Result of objective 1 only: ", (Model.objective1()))
             print("Unscaled Result of objective 3 only: ", (Model.Z()))
             print("Unscaled Result of objective 5 only: ", (Model.gini()))
-            print("Unscaled Result of objective 7 only: ", (Model.unsatisfied_Z()))
             print(" ")
             print(" ************ ")
 
             obj1_results.append(Model.objective1())
             obj3_results.append(Model.Z())
             obj5_results.append(Model.gini())
-            obj7_results.append(Model.unsatisfied_Z())
