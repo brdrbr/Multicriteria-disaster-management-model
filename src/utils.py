@@ -175,7 +175,7 @@ def unscaled_terminal_writer(Model, problem):
     print("Unscaled Result of min cost obj only: ", (Model.obj_mincost()))
     print("Unscaled Result of fairness obj only: ", (Model.Z_fairness()))
     print("Unscaled Result of min gini obj only: ", (Model.obj_gini()))
-    print("Unscaled Result of min unsatisfied demand obj only: ", (Model.Z_unsatisfied()))
+    print("Unscaled Result of min unsatisfied demand obj only: ", (Model.obj_unsatisfied()))
     print(" ")
     print(" ************ ")
 
@@ -188,7 +188,7 @@ def scaled_terminal_writer(Model, min1, min2, min3, min4, scaling_factor_mincost
     print("Scaled Result of min cost obj only: ", (Model.obj_mincost() - min1) * scaling_factor_mincost)
     print("Scaled Result of fairness obj only: ", (Model.Z_fairness() - min2) * scaling_factor_fairness)
     print("Scaled Result of min gini obj only: ", (Model.obj_gini() - min3) * scaling_factor_mingini)
-    print("Scaled Result of min unsatisfied demand obj only: ", (Model.Z_unsatisfied() - min4) * scaling_factor_unsatisfied)
+    print("Scaled Result of min unsatisfied demand obj only: ", (Model.obj_unsatisfied() - min4) * scaling_factor_unsatisfied)
     print(" ")
     print(" ************ ")
 

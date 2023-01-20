@@ -53,7 +53,7 @@ class Problem_Model:
             self.Model.Y[66, t] = 0
 
         # All objectives for tiebreaking
-        Model.obj_mincost = 0
+        self.Model.obj_mincost = 0
         for t in nT:
             for k in nK:
                 for i in Cijkt[t][k]:
@@ -61,9 +61,10 @@ class Problem_Model:
                         if i[0] == e:
                             self.Model.obj_mincost += i[1] * self.Model.X[e, k, t]
 
+        self.Model.obj_unsatisfied = 0
         # For fairness and min unsatisfied demand objectives
         self.Model.Z_fairness = Var(bounds=(0, np.inf), within=NonNegativeReals)
-        self.Model.Z_unsatisfied = Var(bounds=(0, np.inf), within=NonNegativeReals)
+        #self.Model.Z_unsatisfied = Var(bounds=(0, np.inf), within=NonNegativeReals)
         # For gini non-linearity handling
         self.Model.T = Var(nD, nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
 
@@ -120,8 +121,7 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
     # CONSTRAINT 0 for maximizing fairness
     cumsum = 0
     satisfied_cumsum = 0
-    part = 0
-    part2 = 0
+    part_fairness = 0
 
     # Handling fairness
     for d in nD:
@@ -130,20 +130,18 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                 if djkt[t][k][d] > 0:
                     cumsum += djkt[t][k][d]  # cumulative sum
                     satisfied_cumsum += Model.Q[d, k, t]
-                    part += (((cumsum - satisfied_cumsum) / cumsum)) * math.exp((alpha))
-                    part2 += (((satisfied_cumsum) / cumsum)) * math.exp((-alpha * (t+1)))
+                    part_fairness += ((satisfied_cumsum / cumsum)) * math.exp(-alpha * t)
 
                     if t == len(nT) - 1:
-                        #Model.constraints.add(Model.Z_unsatisfied >= part)
-                        Model.constraints.add(Model.Z_fairness <= part2)
+                        Model.constraints.add(Model.Z_fairness <= part_fairness)
                         cumsum = 0
                         satisfied_cumsum = 0
-                        part2 = 0
+                        part_fairness = 0
 
-    # TODO: HANDLE UNSATISFIED DEMAND IN A BETTER WAY (SHOULD BE EQUAL TO THE GINI)
+    # TODO: HANDLE UNSATISFIED DEMAND IN A BETTER WAY (THE RESULT SHOULD BE LIKE GINI)
     unsatisfied_percentage = 0
     cumsum_dict_v2 = {}
-    constraint = []
+
     for t in nT:
         for k in nK:
             for d in nD:
@@ -158,16 +156,11 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                         counter += 1
 
             for key in cumsum_dict_v2.keys():
-                unsatisfied_percentage += Model.H[key, k, t] / cumsum_dict_v2[key]
+                unsatisfied_percentage += (Model.H[key, k, t] / cumsum_dict_v2[key])
 
             unsatisfied_percentage = (unsatisfied_percentage * math.exp(alpha))
-            constraint.append(unsatisfied_percentage)
+            Model.obj_unsatisfied += unsatisfied_percentage
             unsatisfied_percentage = 0
-
-    constraint_fin = 0
-    for i in constraint:
-        constraint_fin += i
-        Model.constraints.add(Model.Z_unsatisfied >= i)
 
     # CONSTRAINTS
 
