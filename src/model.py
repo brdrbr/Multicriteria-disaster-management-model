@@ -134,13 +134,40 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                     part2 += (((satisfied_cumsum) / cumsum)) * math.exp((-alpha * (t+1)))
 
                     if t == len(nT) - 1:
-                        Model.constraints.add(Model.Z_unsatisfied >= part)
+                        #Model.constraints.add(Model.Z_unsatisfied >= part)
                         Model.constraints.add(Model.Z_fairness <= part2)
                         cumsum = 0
                         satisfied_cumsum = 0
                         part2 = 0
 
     # TODO: HANDLE UNSATISFIED DEMAND IN A BETTER WAY (SHOULD BE EQUAL TO THE GINI)
+    unsatisfied_percentage = 0
+    cumsum_dict_v2 = {}
+    constraint = []
+    for t in nT:
+        for k in nK:
+            for d in nD:
+                if djkt[t][k][d] > 0:
+
+                    counter = 0
+                    if d in cumsum_dict_v2.keys():
+                        cumsum_dict_v2[d] += cumsum_dict[t][d]
+                        counter += 1
+                    else:
+                        cumsum_dict_v2[d] = cumsum_dict[t][d]
+                        counter += 1
+
+            for key in cumsum_dict_v2.keys():
+                unsatisfied_percentage += Model.H[key, k, t] / cumsum_dict_v2[key]
+
+            unsatisfied_percentage = (unsatisfied_percentage * math.exp(alpha))
+            constraint.append(unsatisfied_percentage)
+            unsatisfied_percentage = 0
+
+    constraint_fin = 0
+    for i in constraint:
+        constraint_fin += i
+        Model.constraints.add(Model.Z_unsatisfied >= i)
 
     # CONSTRAINTS
 
