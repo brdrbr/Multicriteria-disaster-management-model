@@ -2,7 +2,6 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
-from dataread import uijt
 import math
 
 def update_blocked_capacities(uijt, blocked):
@@ -164,9 +163,34 @@ def excel_writer(nT, nK, nS, djkt, Model, l):
 
     df.set_index('', drop=True, inplace=True)
 
-    writer = pd.ExcelWriter(f'output_obj_{l+1}.xlsx', engine='xlsxwriter')
-    df.to_excel(writer, sheet_name=f"Demand Data Obj {l+1}")
+    writer = pd.ExcelWriter(f'output_obj_{l}.xlsx', engine='xlsxwriter')
+    df.to_excel(writer, sheet_name=f"Demand Data Obj {l}")
     writer.save()
+
+
+def unscaled_terminal_writer(Model, problem):
+    print(f'\nObjective {problem} Solution = ', Model.obj())
+    print(" ")
+    print(f"Solutions Considering Objective {problem}:")
+    print("Unscaled Result of min cost obj only: ", (Model.obj_mincost()))
+    print("Unscaled Result of fairness obj only: ", (Model.Z_fairness()))
+    print("Unscaled Result of min gini obj only: ", (Model.obj_gini()))
+    print("Unscaled Result of min unsatisfied demand obj only: ", (Model.Z_unsatisfied()))
+    print(" ")
+    print(" ************ ")
+
+
+def scaled_terminal_writer(Model, min1, min2, min3, min4, nT, nK, nS, djkt, problem):
+    print(f'\nScaled Objective {problem} Solution = ', Model.obj())
+    excel_writer(nT, nK, nS, djkt, Model, problem)
+    print(" ")
+    print(f"Solutions Considering Objective {problem}:")
+    print("Scaled Result of min cost obj only: ", (Model.obj_mincost() - min1) * Model.scaling_factor[Model.obj_mincost])
+    print("Scaled Result of fairness obj only: ", (Model.Z_fairness() - min2) * Model.scaling_factor[Model.Z_fairness])
+    print("Scaled Result of min gini obj only: ", (Model.obj_gini() - min3) * Model.scaling_factor[Model.obj_gini])
+    print("Scaled Result of min unsatisfied demand obj only: ", (Model.Z_unsatisfied() - min4) * Model.scaling_factor[Model.Z_unsatisfied])
+    print(" ")
+    print(" ************ ")
 
 
 
