@@ -13,21 +13,24 @@ T, K, N, nS, nD, nN, nT, nK, nE, B, Sikt, djkt, Cijkt, uijt, blocked, bt, aij, e
 
 # Defining problem types and solve the UNSCALED PROBLEM
 problems = ["min_cost", "max_fairness", "min_gini", "min_unsatisfied_demand"]
-for i in [0, 1, 2]:
-    target_problem = problems[i]  # INPUT
-    problem = i
+min_cost_results, max_fairness_results, min_gini_results, min_unsatisfied_results = [], [], [], []
+for i in range(0, 4):
+    target_problem = problems[i]
+    problem = i + 1
     opt = SolverFactory('glpk')
-    min_cost_results, max_fairness_results, min_gini_results, min_unsatisfied_results = [], [], [], []
 
     if target_problem == 'min_cost':
         Target_Model = Problem_Model(nE, nK, nT, nD)
         Target_Model = Target_Model.model_initialization(nT, nK, nE, nD, Cijkt)
         Target_Model = model_constraints(Target_Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, aij, bt,
                                          alpha=0.3)
-        Target_Model.obj = Objective(expr=(Target_Model.obj_mincost + (Target_Model.Z_fairness * 0.001) + (Target_Model.obj_gini * 0.001)
+        Target_Model.obj = Objective(expr=(Target_Model.obj_mincost + (-Target_Model.Z_fairness * 0.001) + (Target_Model.obj_gini * 0.001)
                                            + (Target_Model.Z_unsatisfied * 0.0001)), sense=1)
         Model_solution = opt.solve(Target_Model)
+        max_fairness_results.append(Target_Model.Z_fairness())
         min_cost_results.append(Target_Model.obj_mincost())
+        min_gini_results.append(Target_Model.obj_gini())
+        min_unsatisfied_results.append(Target_Model.Z_unsatisfied())
         unscaled_terminal_writer(Target_Model, problem)
 
     elif target_problem == 'max_fairness':
@@ -35,10 +38,13 @@ for i in [0, 1, 2]:
         Target_Model = Target_Model.model_initialization(nT, nK, nE, nD, Cijkt)
         Target_Model = model_constraints(Target_Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, aij, bt,
                                          alpha=0.3)
-        Target_Model.obj = Objective(expr=((Target_Model.obj_mincost * 0.000001) + Target_Model.Z_fairness + (Target_Model.obj_gini * 0.001)
-                                           + (Target_Model.Z_unsatisfied * 0.0001)), sense=-1)
+        Target_Model.obj = Objective(expr=((-Target_Model.obj_mincost * 0.000001) + Target_Model.Z_fairness + (-Target_Model.obj_gini * 0.001)
+                                           + (-Target_Model.Z_unsatisfied * 0.0001)), sense=-1)
         Model_solution = opt.solve(Target_Model)
         max_fairness_results.append(Target_Model.Z_fairness())
+        min_cost_results.append(Target_Model.obj_mincost())
+        min_gini_results.append(Target_Model.obj_gini())
+        min_unsatisfied_results.append(Target_Model.Z_unsatisfied())
         unscaled_terminal_writer(Target_Model, problem)
 
     elif target_problem == 'min_gini':
@@ -46,10 +52,13 @@ for i in [0, 1, 2]:
         Target_Model = Target_Model.model_initialization(nT, nK, nE, nD, Cijkt)
         Target_Model = model_constraints(Target_Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, aij, bt,
                                          alpha=0.3)
-        Target_Model.obj = Objective(expr=((Target_Model.obj_mincost * 0.000001) + (Target_Model.Z_fairness * 0.001) + Target_Model.obj_gini
+        Target_Model.obj = Objective(expr=((Target_Model.obj_mincost * 0.000001) + (-Target_Model.Z_fairness * 0.001) + Target_Model.obj_gini
                                            + (Target_Model.Z_unsatisfied * 0.0001)), sense=1)
         Model_solution = opt.solve(Target_Model)
+        max_fairness_results.append(Target_Model.Z_fairness())
+        min_cost_results.append(Target_Model.obj_mincost())
         min_gini_results.append(Target_Model.obj_gini())
+        min_unsatisfied_results.append(Target_Model.Z_unsatisfied())
         unscaled_terminal_writer(Target_Model, problem)
 
     elif target_problem == 'min_unsatisfied_demand':
@@ -57,57 +66,86 @@ for i in [0, 1, 2]:
         Target_Model = Target_Model.model_initialization(nT, nK, nE, nD, Cijkt)
         Target_Model = model_constraints(Target_Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, aij, bt,
                                          alpha=0.3)
-        Target_Model.obj = Objective(expr=((Target_Model.obj_mincost * 0.000001) + (Target_Model.Z_fairness * 0.001) +
+        Target_Model.obj = Objective(expr=((Target_Model.obj_mincost * 0.000001) + (-Target_Model.Z_fairness * 0.001) +
                                            (Target_Model.obj_gini * 0.001) + Target_Model.Z_unsatisfied), sense=1)
         Model_solution = opt.solve(Target_Model)
+        max_fairness_results.append(Target_Model.Z_fairness())
+        min_cost_results.append(Target_Model.obj_mincost())
+        min_gini_results.append(Target_Model.obj_gini())
         min_unsatisfied_results.append(Target_Model.Z_unsatisfied())
         unscaled_terminal_writer(Target_Model, problem)
 
     else:
         print("Provide a valid target objective.")
 
-"""sleep(5)
 # 5. Solve the SCALED PROBLEM
-for i in [0, 2, 3]:
+min1, min2, min3, min4, scaling_factor_mincost, scaling_factor_fairness, scaling_factor_mingini, scaling_factor_unsatisfied = scaling(min_cost_results,
+                                                                                                              max_fairness_results,
+                                                                                                              min_gini_results,
+                                                                                                              min_unsatisfied_results)
+for i in range(0, 4):
     target_problem = problems[i]  # INPUT
     problem = i
     opt = SolverFactory('glpk')
-    min1, min2, min3, min4 = 0, 0, 0, 0
     if target_problem == 'min_cost':
         Target_Model = Problem_Model(nE, nK, nT, nD)
-        Target_Model = Target_Model.model_initialization(nT, nK, nE, Cijkt)
+        Target_Model = Target_Model.model_initialization(nT, nK, nE, nD, Cijkt)
         Target_Model = model_constraints(Target_Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, aij, bt,
                                          alpha=0.3)
-        Target_Model, min1, min2, min3, min4 = scaling(Target_Model, min_cost_results, max_fairness_results, min_gini_results, min_unsatisfied_results, problem)
+
+        Target_Model.obj = Objective(expr=(((Target_Model.obj_mincost - min1) * scaling_factor_mincost) +
+                                    (-(Target_Model.Z_fairness - min2) * 0.001 * scaling_factor_fairness) +
+                                    ((Target_Model.obj_gini - min3) * 0.001 * scaling_factor_mingini) +
+                                    ((Target_Model.Z_unsatisfied - min4) * 0.001 * scaling_factor_unsatisfied)),
+                              sense=1)  # min cost
+
         Model_solution = opt.solve(Target_Model)
-        scaled_terminal_writer(Target_Model, min1, min2, min3, min4, nT, nK, nS, djkt, problem)
+        scaled_terminal_writer(Target_Model, min1, min2, min3, min4, scaling_factor_mincost, scaling_factor_fairness, scaling_factor_mingini, scaling_factor_unsatisfied, nT, nK, nS, djkt, problem)
 
     elif target_problem == 'max_fairness':
         Target_Model = Problem_Model(nE, nK, nT, nD)
-        Target_Model = Target_Model.model_initialization(nT, nK, nE, Cijkt)
+        Target_Model = Target_Model.model_initialization(nT, nK, nE, nD, Cijkt)
         Target_Model = model_constraints(Target_Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, aij, bt,
                                          alpha=0.3)
-        Target_Model, min1, min2, min3, min4 = scaling(Target_Model, min_cost_results, max_fairness_results, min_gini_results, min_unsatisfied_results, problem)
+
+        Target_Model.obj = Objective(expr=(((Target_Model.obj_mincost - min1) * 0.001 * scaling_factor_mincost) +
+                                    (-(Target_Model.Z_fairness - min2) * scaling_factor_fairness) +
+                                    ((Target_Model.obj_gini - min3) * 0.001 * scaling_factor_mingini) +
+                                    ((Target_Model.Z_unsatisfied - min4) * 0.001 * scaling_factor_unsatisfied)),
+                              sense=1)  # max fairness
+
         Model_solution = opt.solve(Target_Model)
-        scaled_terminal_writer(Target_Model, min1, min2, min3, min4, nT, nK, nS, djkt, problem)
+        scaled_terminal_writer(Target_Model, min1, min2, min3, min4, scaling_factor_mincost, scaling_factor_fairness, scaling_factor_mingini, scaling_factor_unsatisfied, nT, nK, nS, djkt, problem)
 
     elif target_problem == 'min_gini':
         Target_Model = Problem_Model(nE, nK, nT, nD)
-        Target_Model = Target_Model.model_initialization(nT, nK, nE, Cijkt)
+        Target_Model = Target_Model.model_initialization(nT, nK, nE, nD, Cijkt)
         Target_Model = model_constraints(Target_Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, aij, bt,
                                          alpha=0.3)
-        Target_Model, min1, min2, min3, min4 = scaling(Target_Model, min_cost_results, max_fairness_results, min_gini_results, min_unsatisfied_results, problem)
+
+        Target_Model.obj = Objective(expr=((-(Target_Model.obj_mincost - min1) * 0.001 * scaling_factor_mincost) +
+                                    ((Target_Model.Z_fairness - min2) * 0.001 * scaling_factor_fairness) +
+                                    (-(Target_Model.obj_gini - min3) * scaling_factor_mingini) +
+                                    (-(Target_Model.Z_unsatisfied - min4) * 0.001 * scaling_factor_unsatisfied)),
+                              sense=-1)  # min gini
+
         Model_solution = opt.solve(Target_Model)
-        scaled_terminal_writer(Target_Model, min1, min2, min3, min4, nT, nK, nS, djkt, problem)
+        scaled_terminal_writer(Target_Model, min1, min2, min3, min4, scaling_factor_mincost, scaling_factor_fairness, scaling_factor_mingini, scaling_factor_unsatisfied, nT, nK, nS, djkt, problem)
 
     elif target_problem == 'min_unsatisfied_demand':
         Target_Model = Problem_Model(nE, nK, nT, nD)
-        Target_Model = Target_Model.model_initialization(nT, nK, nE, Cijkt)
+        Target_Model = Target_Model.model_initialization(nT, nK, nE, nD, Cijkt)
         Target_Model = model_constraints(Target_Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, aij, bt,
                                          alpha=0.3)
-        Target_Model, min1, min2, min3, min4 = scaling(Target_Model, min_cost_results, max_fairness_results, min_gini_results, min_unsatisfied_results, problem)
+
+        Target_Model.obj = Objective(expr=(((Target_Model.obj_mincost - min1) * 0.001 * scaling_factor_mincost) +
+                                    (-(Target_Model.Z_fairness - min2) * 0.001 * scaling_factor_fairness) +
+                                    ((Target_Model.obj_gini - min3) * 0.001 * scaling_factor_mingini) +
+                                    ((Target_Model.Z_unsatisfied - min4) * scaling_factor_unsatisfied)),
+                              sense=1)  # min unsatisfied demand
+
         Model_solution = opt.solve(Target_Model)
-        scaled_terminal_writer(Target_Model, min1, min2, min3, min4, nT, nK, nS, djkt, problem)
+        scaled_terminal_writer(Target_Model, min1, min2, min3, min4, scaling_factor_mincost, scaling_factor_fairness, scaling_factor_mingini, scaling_factor_unsatisfied, nT, nK, nS, djkt, problem)
 
     else:
-        print("Provide a valid target objective.")"""
+        print("Provide a valid target objective.")

@@ -140,7 +140,7 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                         satisfied_cumsum = 0
                         part2 = 0
 
-
+    # TODO: HANDLE UNSATISFIED DEMAND IN A BETTER WAY (SHOULD BE EQUAL TO THE GINI)
 
     # CONSTRAINTS
 
