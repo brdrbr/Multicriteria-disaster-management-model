@@ -1,5 +1,7 @@
 import pandas as pd
 from pyomo.environ import *
+import numpy as np
+from time import sleep
 
 
 class DataReader:
@@ -8,82 +10,108 @@ class DataReader:
 
         if mode == 'Excel':
 
-            try:
+            df = pd.read_excel(open(directory, 'rb'), sheet_name='Sheet1', engine='openpyxl')
 
-                df = pd.read_excel(open(directory, 'rb'), sheet_name='Data', engine='openpyxl')
+            T = 1
+            K = 2
+            N = len(np.unique(list(df.inside)))
 
-                T, K, N = df.iloc[0, 0], df.iloc[0, 1], df.iloc[0, 2]
-                nS, nD, nN = RangeSet(1, N), RangeSet(1, N), RangeSet(1, N)
-                nT, nK = RangeSet(0, T - 1), RangeSet(0, K - 1)
+            nS = list(df[(df.health_supply > 0) | (df.shelter_supply > 0)].inside)
+            nD = list(df[(df.health_need > 0) | (df.shelter_need > 0)].inside)
+            nN = list(df.inside)
 
-                edge_dict = {}
-                for i in range(1, N + 1):
-                    for j in range(1, N + 1):
-                        edge_dict[int(str(i) + str(j))] = [i, j]
+            nT = [0]
+            nK = [0, 1]
 
-                nE = list(edge_dict.keys())
+            edge_dict = {}
+            for row in df.iterrows():
+                edge_dict[int(float(str(int(float(str(row[1].inside)))) + str(int(float(str(row[1].out))))))] = [int(float(row[1].inside)), int(float(row[1].out))]
 
-                B = []
-                for i in range(1, N * N + 1):
-                    if df.iloc[i, 2] == 1:
-                        B.append(int(str(df.iloc[i, 0]) + str(df.iloc[i, 1])))
+            nE = list(edge_dict.keys())
+            B = list(df.B)
 
-                Sikt = []
-                for i in range(T):
-                    Sikt.append([])
-                    for j in range(K):
-                        Sikt[i].append({})
-                        for k in range(N):
-                            Sikt[i][j][k + 1] = df.iloc[1 + N * (k), 3 + j + i * K]
+            Sikt = []
+            for i in range(T):
+                Sikt.append([])
+                for j in range(K):
+                    Sikt[i].append({})
 
-                djkt = []
-                for i in range(T):
-                    djkt.append([])
-                    for j in range(K):
-                        djkt[i].append({})
-                        for k in range(N):
-                            djkt[i][j][k + 1] = df.iloc[1 + N * (k), 3 + T * K + j + i * K]
+            for t in range(T):
+                for k in range(K):
+                    if k == 0:
+                        supply = "health_supply"
+                    if k == 1:
+                        supply = "shelter_supply"
+                    for n in nS:
+                        Sikt[t][k][n] = int(np.unique(df.loc[df.inside == n, supply]))
 
-                dummy = []
-                for i in range(1, N + 1):
-                    for j in range(1, N + 1):
-                        dummy.append(int(str(i) + str(j)))
-                Cijkt = []
-                for i in range(T):
-                    Cijkt.append([])
-                    for j in range(K):
-                        Cijkt[i].append([])
-                        for k in range(N * N):
-                            Cijkt[i][j].append([])
-                            Cijkt[i][j][k].append(dummy[k])
-                            Cijkt[i][j][k].append(df.iloc[1 + k, 3 + T * K * 2 + j + i * K])
+            djkt = []
+            for i in range(T):
+                djkt.append([])
+                for j in range(K):
+                    djkt[i].append({})
 
-                uijt = []
-                for i in range(T):
-                    uijt.append([])
-                    for k in range(N * N):
-                        uijt[i].append([])
-                        uijt[i][k].append(dummy[k])
-                        uijt[i][k].append(df.iloc[1 + k, 3 + T * K * 3 + i])
+            for t in range(T):
+                for k in range(K):
+                    if k == 0:
+                        need = "health_need"
+                    if k == 1:
+                        need = "shelter_need"
+                    for n in nD:
+                        djkt[t][k][n] = int(np.unique(df.loc[df.inside == n, need]))
 
-                blocked = []
-                for i in range(T):
-                    blocked.append([])
-                    for k in range(N * N):
-                        blocked[i].append([])
-                        blocked[i][k].append(dummy[k])
-                        blocked[i][k].append(df.iloc[1 + k, 3 + T * K * 3 + T + i])
+            Cijkt = []
+            for i in range(T):
+                Cijkt.append([])
+                for j in range(K):
+                    Cijkt[i].append({})
 
-                # Number of resources needed to restore blocked arc (i,j)
-                bt = []
-                for i in range(T):
-                    bt.append(df.iloc[1, 3 + T * K * 3 + T * 2 + i])
+            for t in range(T):
+                for k in range(K):
+                    if k == 0:
+                        cost = "cost_health"
+                    if k == 1:
+                        cost = "cost_shelter"
+                    for n in nN:
+                        Cijkt[t][k][n] = int(np.unique(df.loc[df.inside == n, cost]))
 
-                aij = {}
-                for k in range(N * N):
-                    aij[dummy[k]] = df.iloc[1 + k, 3 + T * K * 3 + T * 3]
+            uijt = []
+            for t in range(T):
+                uijt.append({})
 
-                return T, K, N, nS, nD, nN, nT, nK, nE, B, Sikt, djkt, Cijkt, uijt, blocked, bt, aij, edge_dict
+            df.capacity.fillna(2, inplace=True)
+            for t in range(T):
+                for n in nD:
+                    uijt[t][n] = int(np.sum(list(df.loc[df.inside == n, "capacity"])))
 
-            except:
-                print("Code does not support other file formats for now... ")
+            blocked = []
+            for i in range(T):
+                blocked.append({})
+
+            for t in range(T):
+                for n in nD:
+                    blocked[t][n] = int(np.unique(df.loc[df.inside == n, "blocked"]))
+
+            # Number of resources needed to restore blocked arc (i,j)
+            bt = []
+            for t in range(T):
+                bt.append([])
+
+            for t in range(T):
+                bt[t] = int(np.unique(list(df["road_restoration_supply"])))
+
+            aij = []
+            for i in range(T):
+                aij.append([])
+                for j in range(K):
+                    aij[i].append({})
+
+            for t in range(T):
+                for k in range(K):
+                    for n in nN:
+                        aij[t][k][n] = int(np.unique(list(df["road_restoration_demand"])))
+
+            print("Data is ready.")
+            sleep(2)
+
+            return T, K, N, nS, nD, nN, nT, nK, nE, B, Sikt, djkt, Cijkt, uijt, blocked, bt, aij, edge_dict

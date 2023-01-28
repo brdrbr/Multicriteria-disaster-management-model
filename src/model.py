@@ -1,72 +1,55 @@
 from pyomo.environ import *
 import numpy as np
 import math
+from time import sleep
+import warnings
+warnings.filterwarnings("ignore")
 
-
-class Problem_Model:
-    def __init__(self, nE, nK, nT, nD):
+class ProblemModel:
+    def __init__(self, nN, nE, nK, nT, nD):
 
         # model itself
         self.Model = ConcreteModel()
 
         # model parameters
         self.Model.X = Var(nE, nK, nT, within=NonNegativeReals)
-        self.Model.D = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
-        self.Model.H = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
-        self.Model.Q = Var(nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
+        self.Model.D = Var(nN, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
+        self.Model.H = Var(nN, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
+        self.Model.Q = Var(nN, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
         self.Model.W = Var(nE, nT, bounds=(0, np.inf), within=NonNegativeReals)
         self.Model.Y = Var(nE, nT, within=Binary)
 
-    def model_initialization(self, nT, nK, nE, nD, Cijkt):
+    def model_initialization(self, nN, nT, nK, nE, nD, Cijkt, edge_dict):
 
         for t in nT:
             for k in nK:
-                self.Model.X[11, k, t] = 0
-                self.Model.X[22, k, t] = 0
-                self.Model.X[33, k, t] = 0
-                self.Model.X[44, k, t] = 0
-                self.Model.X[55, k, t] = 0
-                self.Model.X[66, k, t] = 0
+                for edge in list(edge_dict.keys()):
+                    self.Model.X[edge, k, t] = 0
 
         for k in nK:
-            self.Model.H[1, k, 0] = 0
-            self.Model.H[2, k, 0] = 0
-            self.Model.H[3, k, 0] = 0
-            self.Model.H[4, k, 0] = 0
-            self.Model.H[5, k, 0] = 0
-            self.Model.H[6, k, 0] = 0
+            for n in nN:
+                self.Model.H[n, k, 0] = 0
 
         for t in nT:
-            self.Model.W[11, t] = 0
-            self.Model.W[22, t] = 0
-            self.Model.W[33, t] = 0
-            self.Model.W[44, t] = 0
-            self.Model.W[55, t] = 0
-            self.Model.W[66, t] = 0
+            for edge in list(edge_dict.keys()):
+                self.Model.W[edge, t] = 0
+                self.Model.Y[edge, t] = 0
 
-        for t in nT:
-            self.Model.Y[11, t] = 0
-            self.Model.Y[22, t] = 0
-            self.Model.Y[33, t] = 0
-            self.Model.Y[44, t] = 0
-            self.Model.Y[55, t] = 0
-            self.Model.Y[66, t] = 0
-
-        # All objectives for tiebreaking
+        # All objectives for tie-breaking
         self.Model.obj_mincost = 0
         for t in nT:
             for k in nK:
                 for i in Cijkt[t][k]:
                     for e in nE:
-                        if i[0] == e:
-                            self.Model.obj_mincost += i[1] * self.Model.X[e, k, t]
+                        if str(e) in str(i):  # TODO: burayı kontrol et
+                            self.Model.obj_mincost += str(i).replace(str(e), "") * self.Model.X[e, k, t]
 
         self.Model.obj_unsatisfied = 0
-        # For fairness and min unsatisfied demand objectives
         self.Model.Z_fairness = Var(bounds=(0, np.inf), within=NonNegativeReals)
-        #self.Model.Z_unsatisfied = Var(bounds=(0, np.inf), within=NonNegativeReals)
-        # For gini non-linearity handling
         self.Model.T = Var(nD, nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
+
+        print("Model is generated")
+        sleep(2)
 
         return self.Model
 
@@ -108,6 +91,12 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                     if djkt[t][k][d1] > 0 and djkt[t][k][d2] > 0:
                         difference += Model.T[d1, d2, k, t] / (2 * count ** 2 * mean)
                         Model.constraints.add(Model.Q[d1, k, t] >= 0)
+
+                        if cumsum_dict[t][d1] == 0:
+                            cumsum_dict[t][d1] = 1
+                        if cumsum_dict[t][d2] == 0:
+                            cumsum_dict[t][d2] = 1
+
                         Model.constraints.add(
                             (satisfied_cumsum_dict[t][d1] / cumsum_dict[t][d1] - satisfied_cumsum_dict[t][d2] /
                              cumsum_dict[t][d2]) * math.exp(-alpha * t) <= Model.T[d1, d2, k, t])
@@ -117,6 +106,8 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                         Model.constraints.add(Model.T[d1, d2, k, t] >= 0)
 
     Model.obj_gini = difference / (len(nK) * len(nT))
+
+    print(Model.obj_gini)
 
     # CONSTRAINT 0 for maximizing fairness
     cumsum = 0
@@ -138,6 +129,7 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                         satisfied_cumsum = 0
                         part_fairness = 0
 
+    print(part_fairness)
     # TODO: HANDLE UNSATISFIED DEMAND IN A BETTER WAY (THE RESULT SHOULD BE LIKE GINI)
     unsatisfied_percentage = 0
     cumsum_dict_v2 = {}
@@ -158,9 +150,11 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
             for key in cumsum_dict_v2.keys():
                 unsatisfied_percentage += (Model.H[key, k, t] / cumsum_dict_v2[key])
 
-            unsatisfied_percentage = (unsatisfied_percentage * math.exp(alpha))
+            unsatisfied_percentage = (unsatisfied_percentage * math.exp(alpha * (t-1)))
             Model.obj_unsatisfied += unsatisfied_percentage
             unsatisfied_percentage = 0
+
+    print(Model.obj_unsatisfied)
 
     # CONSTRAINTS
 
