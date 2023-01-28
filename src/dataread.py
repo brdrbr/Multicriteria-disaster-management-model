@@ -16,9 +16,9 @@ class DataReader:
             K = 2
             N = len(np.unique(list(df.inside)))
 
-            nS = list(df[(df.health_supply > 0) | (df.shelter_supply > 0)].inside)
-            nD = list(df[(df.health_need > 0) | (df.shelter_need > 0)].inside)
-            nN = list(df.inside)
+            nS = np.unique(list(df[(df.health_supply > 0) | (df.shelter_supply > 0)].inside))
+            nD = np.unique(list(df[(df.health_need > 0) | (df.shelter_need > 0)].inside))
+            nN = np.unique(list(df.inside))
 
             nT = [0]
             nK = [0, 1]
