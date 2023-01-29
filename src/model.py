@@ -50,7 +50,6 @@ class ProblemModel:
         self.Model.T = Var(nD, nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
 
         print("Model is generated")
-        sleep(2)
 
         return self.Model
 
@@ -192,6 +191,8 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                     out = 0
 
     # CONSTRAINT 3
+    into = 0
+    out = 0
     for t in nT:
         for k in nK:
             for e in nN:  # for all transition nodes ( neither supply nor demand )
@@ -220,66 +221,72 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                     Model.constraints.add(Model.Q[d, k, t] == Model.D[d, k, t] - Model.H[d, k, t])
 
     # REMOVING BLOCKED ARCS FOR CONSTRAINTS 5 AND 6
-    capacities = []
+    """capacities = []
     for t in nT:
-        for i in uijt[t]:
+        for index, i in enumerate(uijt[t]):
             for s in nS:
                 for d in nD:
-                    if int(str(i[0])[:-1]) == s and int(str(i[0])[1:2]) == d:
-                        capacities.append(i[1])
+                    if str(i).find(str(s)) == 0 and str(i).find(str(d)) > 0:
+                        capacities.append(uijt[t][i])"""
 
     # CONSTRAINT 5
     for t in nT:
         for index, i in enumerate(uijt[t]):
-            if i[1] != 0:  # its not blocked
-                Model.constraints.add(sum(Model.X[i[0], k, t] for k in nK) <= capacities[index])
+            if uijt[t][i] != 0:  # its not blocked
+                Model.constraints.add(sum(Model.X[i, k, t] for k in nK) <= uijt[t][i])  # capacities
 
     # CONSTRAINT 6
     for t in nT:
         for index, i in enumerate(uijt[t]):
-            if i[1] == 0:  # its blocked
-                Model.constraints.add(sum(Model.X[i[0], k, t] for k in nK) <= capacities[i[1]] * Model.Y[i[0], t])
+            if uijt[t][i] == 0:   # its blocked
+                Model.constraints.add(sum(Model.X[i, k, t] for k in nK) <= uijt[t][i] * Model.Y[i, t])
 
     # CONSTRAINT 7
-    origin_list = []
-    destination_list = []
     time_list = []
+    edge_list = []
     for t in nT:
         for index, i in enumerate(uijt[t]):
-            if i[1] == 0:  # its blocked
-                origin_list.append(int(str(i[0])[:-1]))
-                destination_list.append(int(str(i[0])[1:2]))
+            if uijt[t][i] == 0:  # its blocked
+                edge_list.append(i)
                 time_list.append(t)
+
     for t in nT:
         Model.constraints.add(
-            sum(Model.W[int(str(o) + str(d)), t] for (o, d) in zip(origin_list, destination_list)) <= bt[t])
+            sum(Model.W[edge, t] for edge in edge_list) <= bt[t])
 
     # CONSTRAINT 8
     for t in nT:
         nT2 = RangeSet(0, t)
         for index, i in enumerate(uijt[t]):
-            if i[1] == 0:  # its blocked
-                Model.constraints.add(sum(Model.W[i[0], t2] for t2 in nT2) >= aij[i[0]] * Model.Y[i[0], t])
+            if uijt[t][i] == 0:  # its blocked
+                Model.constraints.add(sum(Model.W[i, t2] for t2 in nT2) >= 10 * Model.Y[i, t])
 
     # CONSTRAINT 9
     for t in nT:
         for k in nK:
             for index, i in enumerate(uijt[t]):
-                if i[1] == 0:
-                    Model.constraints.add(Model.X[int(str(i[0])), k, t] >= 0)
-                    Model.constraints.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
-                    Model.constraints.add(Model.H[int(str(i[0])[1:2]), k, t] >= 0)
+                if uijt[t][i] == 0:
+                    Model.constraints.add(Model.X[i, k, t] >= 0)
+                    for n in nN:
+                        if str(i).find(str(n)) == 0:
+                            Model.constraints.add(Model.D[n, k, t] >= 0)
+                            Model.constraints.add(Model.H[n, k, t] >= 0)
 
     counter = 0
     for t in nT:
         for k in nK:
             for index, i in enumerate(uijt[t]):
-                if i[1] != 0:
+                if uijt[t][i] > 0:
                     if counter == 2:
                         break
-                    Model.constraints.add(Model.X[int(str(i[0])), k, t] >= 0)
-                    Model.constraints.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
+                    for n in nN:
+                        if str(i).find(str(n)) == 0:
+                            Model.constraints.add(Model.D[n, k, t] >= 0)
+                    Model.constraints.add(Model.X[i, k, t] >= 0)
                     counter += 1
+
+    print("Constraints are done")
+
     return Model
 
 

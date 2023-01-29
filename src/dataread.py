@@ -78,10 +78,13 @@ class DataReader:
             for t in range(T):
                 uijt.append({})
 
-            df.capacity.fillna(2, inplace=True)
+            df.capacity.fillna(0, inplace=True)
             for t in range(T):
                 for n in nD:
-                    uijt[t][n] = int(np.sum(list(df.loc[df.inside == n, "capacity"])))
+                    n_cap = int(np.sum(list(df.loc[df.inside == n, "capacity"])))
+                    for edge in list(edge_dict.keys()):
+                        if str(edge).find(str(n)) == 0:
+                            uijt[t][edge] = n_cap
 
             blocked = []
             for i in range(T):
@@ -113,7 +116,6 @@ class DataReader:
             k1_nodes = np.unique(list(df[(df.health_need > 0)].inside))
             k2_nodes = np.unique(list(df[(df.shelter_need > 0)].inside))
 
-            print("Data is ready.")
-            sleep(2)
+            print("Data is ready")
 
             return T, K, N, nS, nD, nN, nT, nK, nE, B, Sikt, djkt, Cijkt, uijt, blocked, bt, aij, edge_dict, k1_nodes, k2_nodes
