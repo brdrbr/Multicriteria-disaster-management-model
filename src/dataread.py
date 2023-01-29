@@ -1,5 +1,4 @@
 import pandas as pd
-from pyomo.environ import *
 import numpy as np
 from time import sleep
 
@@ -42,7 +41,7 @@ class DataReader:
                         supply = "health_supply"
                     if k == 1:
                         supply = "shelter_supply"
-                    for n in nS:
+                    for n in nN:
                         Sikt[t][k][n] = int(np.unique(df.loc[df.inside == n, supply]))
 
             djkt = []
@@ -57,7 +56,7 @@ class DataReader:
                         need = "health_need"
                     if k == 1:
                         need = "shelter_need"
-                    for n in nD:
+                    for n in nN:
                         djkt[t][k][n] = int(np.unique(df.loc[df.inside == n, need]))
 
             Cijkt = []
@@ -111,7 +110,10 @@ class DataReader:
                     for n in nN:
                         aij[t][k][n] = int(np.unique(list(df["road_restoration_demand"])))
 
+            k1_nodes = np.unique(list(df[(df.health_need > 0)].inside))
+            k2_nodes = np.unique(list(df[(df.shelter_need > 0)].inside))
+
             print("Data is ready.")
             sleep(2)
 
-            return T, K, N, nS, nD, nN, nT, nK, nE, B, Sikt, djkt, Cijkt, uijt, blocked, bt, aij, edge_dict
+            return T, K, N, nS, nD, nN, nT, nK, nE, B, Sikt, djkt, Cijkt, uijt, blocked, bt, aij, edge_dict, k1_nodes, k2_nodes
