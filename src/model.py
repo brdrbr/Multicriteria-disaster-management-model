@@ -1,6 +1,7 @@
 from pyomo.environ import *
 import numpy as np
 import math
+from collections import Counter
 
 
 class Problem_Model:
@@ -61,12 +62,12 @@ class Problem_Model:
                         if i[0] == e:
                             self.Model.obj_mincost += i[1] * self.Model.X[e, k, t]
 
-        self.Model.obj_unsatisfied = 0
         # For fairness and min unsatisfied demand objectives
+        self.Model.obj_unsatisfied = 0
         self.Model.Z_fairness = Var(bounds=(0, np.inf), within=NonNegativeReals)
-        #self.Model.Z_unsatisfied = Var(bounds=(0, np.inf), within=NonNegativeReals)
         # For gini non-linearity handling
         self.Model.T = Var(nD, nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
+        self.Model.T2 = Var(nD, nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
 
         return self.Model
 
@@ -74,6 +75,8 @@ class Problem_Model:
 def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, aij, bt, alpha):
 
     Model.constraints = ConstraintList()
+
+    # GINI OBJECTIVE
 
     difference = 0
     count = len(nD)
@@ -101,6 +104,18 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
         satisfied_cumsum_fin = satisfied_cumsum.copy()
         satisfied_cumsum_dict[t] = satisfied_cumsum_fin
 
+    cumsum_dict_fin = {}
+    for t in nT:
+        if t == 0:
+            z = dict(Counter(cumsum_dict[t]))
+            cumsum_dict_fin[t] = z
+        elif t > 0 and t < len(nT) - 1:
+            z = dict(Counter(cumsum_dict[t-1])+Counter(cumsum_dict[t]))
+            cumsum_dict_fin[t] = z
+        elif t > 0 and t == len(nT) -1:
+            z = dict(Counter(cumsum_dict[t - 2]) + Counter(cumsum_dict[t - 1]) + Counter(cumsum_dict[t]))
+            cumsum_dict_fin[t] = z
+
     for t in nT:
         for k in nK:
             for d1 in nD:
@@ -118,7 +133,7 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
 
     Model.obj_gini = difference / (len(nK) * len(nT))
 
-    # CONSTRAINT 0 for maximizing fairness
+    # FAIRNESS OBJECTIVE
     cumsum = 0
     satisfied_cumsum = 0
     part_fairness = 0
@@ -138,29 +153,36 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                         satisfied_cumsum = 0
                         part_fairness = 0
 
-    # TODO: HANDLE UNSATISFIED DEMAND IN A BETTER WAY (THE RESULT SHOULD BE LIKE GINI)
-    unsatisfied_percentage = 0
-    cumsum_dict_v2 = {}
+    # UNSATISFIED DEMAND
+    difference = 0
+    count = len(nD)
+
+    unsatisfied_cumsum = {}
+    unsatisfied_cumsum_dict = {}
+    for t in nT:
+        for k in nK:
+            for d1 in nD:
+                unsatisfied_cumsum[d1] = Model.H[d1, k, t]
+
+        unsatisfied_cumsum_fin = unsatisfied_cumsum.copy()
+        unsatisfied_cumsum_dict[t] = unsatisfied_cumsum_fin
 
     for t in nT:
         for k in nK:
-            for d in nD:
-                if djkt[t][k][d] > 0:
+            for d1 in nD:
+                for d2 in nD:
+                    if djkt[t][k][d1] > 0 and djkt[t][k][d2] > 0:
+                        difference += Model.T2[d1, d2, k, t] / (2 * count ** 2 * mean)
+                        Model.constraints.add(Model.H[d1, k, t] >= 0)
+                        Model.constraints.add(
+                            (unsatisfied_cumsum_dict[t][d1] / cumsum_dict_fin[t][d1] - unsatisfied_cumsum_dict[t][d2] /
+                             cumsum_dict_fin[t][d2]) * math.exp(alpha) <= Model.T2[d1, d2, k, t])
+                        Model.constraints.add(
+                            (unsatisfied_cumsum_dict[t][d1] / cumsum_dict_fin[t][d1] - unsatisfied_cumsum_dict[t][d2] /
+                             cumsum_dict_fin[t][d2]) * math.exp(alpha) >= -Model.T2[d1, d2, k, t])
+                        Model.constraints.add(Model.T2[d1, d2, k, t] >= 0)
 
-                    counter = 0
-                    if d in cumsum_dict_v2.keys():
-                        cumsum_dict_v2[d] += cumsum_dict[t][d]
-                        counter += 1
-                    else:
-                        cumsum_dict_v2[d] = cumsum_dict[t][d]
-                        counter += 1
-
-            for key in cumsum_dict_v2.keys():
-                unsatisfied_percentage += (Model.H[key, k, t] / cumsum_dict_v2[key])
-
-            unsatisfied_percentage = (unsatisfied_percentage * math.exp(alpha))
-            Model.obj_unsatisfied += unsatisfied_percentage
-            unsatisfied_percentage = 0
+    Model.obj_unsatisfied = difference / (len(nK) * len(nT))
 
     # CONSTRAINTS
 
