@@ -1,8 +1,5 @@
-from dataread import *
-from pyomo.opt import SolverFactory
-from utils import *
+from src.utils import *
 import numpy as np
-from pyomo.opt import SolverFactory
 from dataread import *
 
 obj1_results, obj3_results, obj5_results = [], [], []
@@ -69,6 +66,7 @@ for counter_scaling in range(0, 2):
                             Model.objective1 += i[1] * Model.X[e, k, t]
 
         Model.Z = Var(bounds=(0, np.inf), within=NonNegativeReals)
+        Model.Z2 = Var(bounds=(0, np.inf), within=NonNegativeReals)
         Model.T = Var(nD, nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
 
         if counter_scaling != 0:
@@ -181,6 +179,7 @@ for counter_scaling in range(0, 2):
         cumsum = 0
         satisfied_cumsum = 0
         part = 0
+        part2 = 0
 
         # Summation over time
         for d in nD:
@@ -190,10 +189,12 @@ for counter_scaling in range(0, 2):
                         cumsum += djkt[t][k][d]  # cumulative sum
                         satisfied_cumsum += Model.Q[d, k, t]
                         part += (((cumsum - satisfied_cumsum) / cumsum)) * math.exp((alpha))
+                        part2 += (((satisfied_cumsum) / cumsum)) * math.exp((alpha * t))
 
                         if t == len(nT) - 1:
                             print(part)
                             Model.c1.add(Model.Z >= part)
+                            Model.c1.add(Model.Z2 <= part)
                             cumsum = 0
                             satisfied_cumsum = 0
                             part = 0
