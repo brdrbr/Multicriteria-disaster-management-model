@@ -7,7 +7,7 @@ from src.utils import scaled_terminal_writer, unscaled_terminal_writer, logger
 # 1. Read the data
 data_reader = DataReader()
 T, K, N, nS, nD, nN, nT, nK, nE, B, Sikt, djkt, Cijkt, uijt, blocked, bt, aij, \
-edge_dict = data_reader.data_read('/Users/yaseminsavas/Multicriteria-disaster-management-model/data/big_data2.xlsx',
+edge_dict = data_reader.data_read('./data/big_data2.xlsx',
                                   mode="Excel")
 
 # Defining problem types and solve the UNSCALED PROBLEM
