@@ -1,12 +1,13 @@
 from pyomo.environ import *
 import numpy as np
 import math
-from collections import Counter
-from src.utils import logger
+from time import sleep
+import warnings
+warnings.filterwarnings("ignore")
 
 
-class Problem_Model:
-    def __init__(self, nN, nE, nK, nT):
+class ProblemModel:
+    def __init__(self, nN, nE, nK, nT, nD):
 
         # model itself
         self.Model = ConcreteModel()
@@ -19,7 +20,7 @@ class Problem_Model:
         self.Model.W = Var(nE, nT, bounds=(0, np.inf), within=NonNegativeReals)
         self.Model.Y = Var(nE, nT, within=Binary)
 
-    def model_initialization(self, nT, nK, nE, nD, Cijkt, edge_dict):
+    def model_initialization(self, nN, nT, nK, nE, nD, Cijkt, edge_dict):
 
         for t in nT:
             for k in nK:
@@ -35,31 +36,36 @@ class Problem_Model:
                 self.Model.W[edge, t] = 0
                 self.Model.Y[edge, t] = 0
 
-        # Minimum Cost Objective
+        # All objectives for tie-breaking
         self.Model.obj_mincost = 0
         for t in nT:
             for k in nK:
                 for i in Cijkt[t][k]:
                     for e in nE:
-                        if i[0] == e:
-                            self.Model.obj_mincost += i[1] * self.Model.X[e, k, t]
+                        if str(e) in str(i):  # TODO: burayı kontrol et
+                            self.Model.obj_mincost += str(i).replace(str(e), "") * self.Model.X[e, k, t]
 
-        # Minimum Unsatisfied Objective and its related variable to linearize
-        self.Model.obj_unsatisfied = Var(bounds=(0, np.inf), within=NonNegativeReals)
-        self.Model.T2 = Var(nD, nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
+        self.Model.obj_unsatisfied = 0
+        self.Model.Z_fairness = Var(bounds=(0, np.inf), within=NonNegativeReals)
+        self.Model.T = Var(nD, nD, nK, nT, bounds=(0, np.inf), within=NonNegativeReals)
 
-        logger.info("Model is generated")
+        print("Model is generated")
 
         return self.Model
 
 
-def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, aij, bt, alpha):
+def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, aij, bt, k1_nodes, k2_nodes, alpha):
 
     Model.constraints = ConstraintList()
 
-    # Needed Structures
+    difference = 0
+    count = {}
+    for k in nK:
+        if k == 0:
+            count[k] = len(k1_nodes)
+        elif k == 1:
+            count[k] = len(k2_nodes)
 
-    count = len(nD)
     mean = 0
     cumsum = {}
     cumsum_dict = {}
@@ -67,9 +73,10 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
     for t in nT:
         for k in nK:
             tmp = np.array(list(Sikt[t][k].values()))
-            mean = np.sum(tmp) / count
+            mean = np.sum(tmp) / count[k]
             for d1 in nD:
-                cumsum[d1] = djkt[t][k][d1]
+                if djkt[t][k][d1] > 0:
+                    cumsum[d1] = djkt[t][k][d1]
 
         cumsum_fin = cumsum.copy()
         cumsum_dict[t] = cumsum_fin
@@ -79,53 +86,74 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
     for t in nT:
         for k in nK:
             for d1 in nD:
-                satisfied_cumsum[d1] = Model.Q[d1, k, t]
+                if djkt[t][k][d1] > 0:
+                    satisfied_cumsum[d1] = Model.Q[d1, k, t]
 
         satisfied_cumsum_fin = satisfied_cumsum.copy()
         satisfied_cumsum_dict[t] = satisfied_cumsum_fin
-
-    cumsum_dict_fin = {}
-    for t in nT:
-        if t == 0:
-            z = dict(Counter(cumsum_dict[t]))
-            cumsum_dict_fin[t] = z
-        elif 0 < t < len(nT) - 1:
-            z = dict(Counter(cumsum_dict[t-1])+Counter(cumsum_dict[t]))
-            cumsum_dict_fin[t] = z
-        elif t > 0 and t == len(nT) -1:
-            z = dict(Counter(cumsum_dict[t - 2]) + Counter(cumsum_dict[t - 1]) + Counter(cumsum_dict[t]))
-            cumsum_dict_fin[t] = z
-
-    # UNSATISFIED DEMAND
-    difference = 0
-    count = len(nD)
-
-    unsatisfied_cumsum = {}
-    unsatisfied_cumsum_dict = {}
-    for t in nT:
-        for k in nK:
-            for d1 in nD:
-                unsatisfied_cumsum[d1] = Model.H[d1, k, t]
-
-        unsatisfied_cumsum_fin = unsatisfied_cumsum.copy()
-        unsatisfied_cumsum_dict[t] = unsatisfied_cumsum_fin
 
     for t in nT:
         for k in nK:
             for d1 in nD:
                 for d2 in nD:
                     if djkt[t][k][d1] > 0 and djkt[t][k][d2] > 0:
-                        difference += Model.T2[d1, d2, k, t] / (2 * count ** 2 * mean)
-                        Model.constraints.add(Model.H[d1, k, t] >= 0)
-                        Model.constraints.add(
-                            (unsatisfied_cumsum_dict[t][d1] / cumsum_dict_fin[t][d1] - unsatisfied_cumsum_dict[t][d2] /
-                             cumsum_dict_fin[t][d2]) * math.exp(alpha) <= Model.T2[d1, d2, k, t])
-                        Model.constraints.add(
-                            (unsatisfied_cumsum_dict[t][d1] / cumsum_dict_fin[t][d1] - unsatisfied_cumsum_dict[t][d2] /
-                             cumsum_dict_fin[t][d2]) * math.exp(alpha) >= -Model.T2[d1, d2, k, t])
-                        Model.constraints.add(Model.T2[d1, d2, k, t] >= 0)
 
-    Model.constraints.add(Model.obj_unsatisfied >= difference / (len(nK) * len(nT)))
+                        difference += Model.T[d1, d2, k, t] / (2 * count[k] ** 2 * mean)
+                        Model.constraints.add(Model.Q[d1, k, t] >= 0)
+
+                        Model.constraints.add(
+                            (satisfied_cumsum_dict[t][d1] / cumsum_dict[t][d1] - satisfied_cumsum_dict[t][d2] /
+                             cumsum_dict[t][d2]) * math.exp(-alpha * t) <= Model.T[d1, d2, k, t])
+                        Model.constraints.add(
+                            (satisfied_cumsum_dict[t][d1] / cumsum_dict[t][d1] - satisfied_cumsum_dict[t][d2] /
+                             cumsum_dict[t][d2]) * math.exp(-alpha * t) >= -Model.T[d1, d2, k, t])
+                        Model.constraints.add(Model.T[d1, d2, k, t] >= 0)
+
+    Model.obj_gini = difference / (len(nK) * len(nT))
+
+    # CONSTRAINT 0 for maximizing fairness
+    cumsum = 0
+    satisfied_cumsum = 0
+    part_fairness = 0
+
+    # Handling fairness
+    for d in nD:
+        for k in nK:
+            for t in nT:
+                if djkt[t][k][d] > 0:
+                    cumsum += djkt[t][k][d]  # cumulative sum
+                    satisfied_cumsum += Model.Q[d, k, t]
+                    part_fairness += (satisfied_cumsum / cumsum) * math.exp(-alpha * t)
+
+                    if t == len(nT) - 1:
+                        Model.constraints.add(Model.Z_fairness <= part_fairness)
+                        cumsum = 0
+                        satisfied_cumsum = 0
+                        part_fairness = 0
+
+    # TODO: HANDLE UNSATISFIED DEMAND IN A BETTER WAY (THE RESULT SHOULD BE LIKE GINI)
+    unsatisfied_percentage = 0
+    cumsum_dict_v2 = {}
+
+    for t in nT:
+        for k in nK:
+            for d in nD:
+                if djkt[t][k][d] > 0:
+
+                    counter = 0
+                    if d in cumsum_dict_v2.keys():
+                        cumsum_dict_v2[d] += cumsum_dict[t][d]
+                        counter += 1
+                    else:
+                        cumsum_dict_v2[d] = cumsum_dict[t][d]
+                        counter += 1
+
+            for key in cumsum_dict_v2.keys():
+                unsatisfied_percentage += (Model.H[key, k, t] / cumsum_dict_v2[key])
+
+            unsatisfied_percentage = (unsatisfied_percentage * math.exp(alpha))
+            Model.obj_unsatisfied += unsatisfied_percentage
+            unsatisfied_percentage = 0
 
     # CONSTRAINTS
 
@@ -136,11 +164,10 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
         for k in nK:
             for e in nS:  # for all supply nodes
                 if Sikt[t][k][e] > 0:
-
                     for i in edge_dict.keys():
-                        if int(str(i)[:-1]) == e:
+                        if str(i).find(str(e)) == 0:
                             into += Model.X[i, k, t]
-                        if int(str(i)[1:2]) == e:
+                        elif str(i).find(str(e)) > 0:
                             out += Model.X[i, k, t]
                     Model.constraints.add(into - out == Sikt[t][k][e])
                     into = 0
@@ -154,25 +181,27 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
             for e in nD:  # for all demand nodes
                 if djkt[t][k][e] > 0:
                     for i in edge_dict.keys():
-                        if int(str(i)[:-1]) == e:
-                            out += Model.X[i, k, t]
-                        if int(str(i)[1:2]) == e:
+                        if str(i).find(str(e)) == 0:
                             into += Model.X[i, k, t]
+                        elif str(i).find(str(e)) > 0:
+                            out += Model.X[i, k, t]
 
                     Model.constraints.add(into - out + Model.H[e, k, t] == Model.D[e, k, t])
                     into = 0
                     out = 0
 
     # CONSTRAINT 3
+    into = 0
+    out = 0
     for t in nT:
         for k in nK:
             for e in nN:  # for all transition nodes ( neither supply nor demand )
                 if Sikt[t][k][e] == 0 and djkt[t][k][e] == 0:
                     for i in edge_dict.keys():
-                        if int(str(i)[:-1]) == e:
-                            out += Model.X[i, k, t]
-                        if int(str(i)[1:2]) == e:
+                        if str(i).find(str(e)) == 0:
                             into += Model.X[i, k, t]
+                        elif str(i).find(str(e)) > 0:
+                            out += Model.X[i, k, t]
 
                     Model.constraints.add(into - out == 0)
                     into = 0
@@ -192,68 +221,71 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                     Model.constraints.add(Model.Q[d, k, t] == Model.D[d, k, t] - Model.H[d, k, t])
 
     # REMOVING BLOCKED ARCS FOR CONSTRAINTS 5 AND 6
-    capacities = []
+    """capacities = []
     for t in nT:
-        for i in uijt[t]:
+        for index, i in enumerate(uijt[t]):
             for s in nS:
                 for d in nD:
-                    if int(str(i[0])[:-1]) == s and int(str(i[0])[1:2]) == d:
-                        capacities.append(i[1])
+                    if str(i).find(str(s)) == 0 and str(i).find(str(d)) > 0:
+                        capacities.append(uijt[t][i])"""
 
     # CONSTRAINT 5
     for t in nT:
         for index, i in enumerate(uijt[t]):
-            if i[1] != 0:  # its not blocked
-                Model.constraints.add(sum(Model.X[i[0], k, t] for k in nK) <= capacities[index])
+            if uijt[t][i] != 0:  # its not blocked
+                Model.constraints.add(sum(Model.X[i, k, t] for k in nK) <= uijt[t][i])  # capacities
 
     # CONSTRAINT 6
     for t in nT:
         for index, i in enumerate(uijt[t]):
-            if i[1] == 0:  # its blocked
-                Model.constraints.add(sum(Model.X[i[0], k, t] for k in nK) <= capacities[i[1]] * Model.Y[i[0], t])
+            if uijt[t][i] == 0:   # its blocked
+                Model.constraints.add(sum(Model.X[i, k, t] for k in nK) <= uijt[t][i] * Model.Y[i, t])
 
     # CONSTRAINT 7
-    origin_list = []
-    destination_list = []
     time_list = []
+    edge_list = []
     for t in nT:
         for index, i in enumerate(uijt[t]):
-            if i[1] == 0:  # its blocked
-                origin_list.append(int(str(i[0])[:-1]))
-                destination_list.append(int(str(i[0])[1:2]))
+            if uijt[t][i] == 0:  # its blocked
+                edge_list.append(i)
                 time_list.append(t)
+
     for t in nT:
         Model.constraints.add(
-            sum(Model.W[int(str(o) + str(d)), t] for (o, d) in zip(origin_list, destination_list)) <= bt[t])
+            sum(Model.W[edge, t] for edge in edge_list) <= bt[t])
 
     # CONSTRAINT 8
     for t in nT:
         nT2 = RangeSet(0, t)
         for index, i in enumerate(uijt[t]):
-            if i[1] == 0:  # its blocked
-                Model.constraints.add(sum(Model.W[i[0], t2] for t2 in nT2) >= aij[i[0]] * Model.Y[i[0], t])
+            if uijt[t][i] == 0:  # its blocked
+                Model.constraints.add(sum(Model.W[i, t2] for t2 in nT2) >= 10 * Model.Y[i, t])
 
     # CONSTRAINT 9
     for t in nT:
         for k in nK:
             for index, i in enumerate(uijt[t]):
-                if i[1] == 0:
-                    Model.constraints.add(Model.X[int(str(i[0])), k, t] >= 0)
-                    Model.constraints.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
-                    Model.constraints.add(Model.H[int(str(i[0])[1:2]), k, t] >= 0)
+                if uijt[t][i] == 0:
+                    Model.constraints.add(Model.X[i, k, t] >= 0)
+                    for n in nN:
+                        if str(i).find(str(n)) == 0:
+                            Model.constraints.add(Model.D[n, k, t] >= 0)
+                            Model.constraints.add(Model.H[n, k, t] >= 0)
 
     counter = 0
     for t in nT:
         for k in nK:
             for index, i in enumerate(uijt[t]):
-                if i[1] != 0:
+                if uijt[t][i] > 0:
                     if counter == 2:
                         break
-                    Model.constraints.add(Model.X[int(str(i[0])), k, t] >= 0)
-                    Model.constraints.add(Model.D[int(str(i[0])[1:2]), k, t] >= 0)
+                    for n in nN:
+                        if str(i).find(str(n)) == 0:
+                            Model.constraints.add(Model.D[n, k, t] >= 0)
+                    Model.constraints.add(Model.X[i, k, t] >= 0)
                     counter += 1
 
-    logger.info("Constraints are generated")
+    print("Constraints are done")
 
     return Model
 
