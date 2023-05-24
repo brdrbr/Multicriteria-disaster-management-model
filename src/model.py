@@ -42,8 +42,8 @@ class ProblemModel:
             for k in nK:
                 for i in Cijkt[t][k]:
                     for e in nE:
-                        if str(e) in str(i):  # TODO: burayı kontrol et
-                            self.Model.obj_mincost += str(i).replace(str(e), "") * self.Model.X[e, k, t]
+                        if str(i) in str(e):
+                            self.Model.obj_mincost += self.Model.X[e, k, t] * Cijkt[t][k][i]
 
         self.Model.obj_unsatisfied = 0
         self.Model.Z_fairness = Var(bounds=(0, np.inf), within=NonNegativeReals)
@@ -220,15 +220,6 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                     Model.constraints.add(Model.H[d, k, t] <= Model.D[d, k, t])
                     Model.constraints.add(Model.Q[d, k, t] == Model.D[d, k, t] - Model.H[d, k, t])
 
-    # REMOVING BLOCKED ARCS FOR CONSTRAINTS 5 AND 6
-    """capacities = []
-    for t in nT:
-        for index, i in enumerate(uijt[t]):
-            for s in nS:
-                for d in nD:
-                    if str(i).find(str(s)) == 0 and str(i).find(str(d)) > 0:
-                        capacities.append(uijt[t][i])"""
-
     # CONSTRAINT 5
     for t in nT:
         for index, i in enumerate(uijt[t]):
@@ -251,8 +242,11 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
                 time_list.append(t)
 
     for t in nT:
-        Model.constraints.add(
-            sum(Model.W[edge, t] for edge in edge_list) <= bt[t])
+        try:
+            Model.constraints.add(
+                sum(Model.W[edge, t] for edge in edge_list) <= bt[t])
+        except:
+            continue
 
     # CONSTRAINT 8
     for t in nT:
@@ -288,5 +282,4 @@ def model_constraints(Model, nD, nT, nK, nN, Sikt, djkt, nS, uijt, edge_dict, ai
     print("Constraints are done")
 
     return Model
-
 

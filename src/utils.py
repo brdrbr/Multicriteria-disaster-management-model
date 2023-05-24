@@ -3,13 +3,6 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
 import math
-import sys
-from loguru import logger
-
-logger.remove()
-logger.add(sink=sys.stderr, level='INFO', colorize=True)
-Logger = logger
-
 
 def update_blocked_capacities(uijt, blocked):
     uijt_tmp = [i[2] for i in uijt[0][0]]
@@ -153,12 +146,24 @@ def excel_writer(nT, nK, nS, djkt, Model, l):
             for key, value in djkt[i][j].items():
                 if key in demandnodes:
                     djktlist.append(value)
+
             for (key, value), (key2, value2), (key3, value3) in zip(Model.D.get_values().items(), Model.H.get_values().items(), Model.Q.get_values().items()):
-                if key[0] in demandnodes and key[0] == key2[0] and j == key[1] and i == key[2] and key[0] == key3[0]:
-                    Dlist.append(value)  # demand obtained in this period
-                    Hlist.append(value2)
-                    QList.append(value3)
+
+                if value is None:
+                    value = 0
+                if value2 is None:
+                    value2 = 0
+                if value3 is None:
+                    value3 = 0
+
+                if key[0] in demandnodes and value > 0:
+                    Dlist.append(value)
                     discount.append(math.exp((alpha)))
+                if key[0] == key2[0] and value2 > 0:
+                    Hlist.append(value2)
+
+                if key[0] == key3[0] and value3 > 0:
+                    QList.append(value3)
 
             df["djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = djktlist
             df["Djkt(C" + str(j + 1) + "T" + str(i + 1) + ")"] = Dlist
@@ -176,22 +181,24 @@ def excel_writer(nT, nK, nS, djkt, Model, l):
 
 
 def unscaled_terminal_writer(Model, problem):
+    print(f'\nObjective {problem} Solution = ', Model.obj())
+    print(" ")
+    print(f"Solutions Considering Objective {problem}:")
+    print("Unscaled Result of min cost obj only: ", (Model.obj_mincost()))
+    print("Unscaled Result of min unsatisfied demand obj only: ", (Model.obj_unsatisfied()))
+    print(" ")
+    print(" ************ ")
 
-    logger.info(f'\nObjective {problem} Solution = {Model.obj()} ')
-    logger.info(f"Solutions Considering Objective {problem}:")
-    logger.info(f"Unscaled Result of min cost obj only: {Model.obj_mincost()} ")
-    logger.info(f"Unscaled Result of min unsatisfied demand obj only: {Model.obj_unsatisfied()} ")
 
-
-def scaled_terminal_writer(Model, min1, min2, scaling_factor_mincost,
-                           scaling_factor_unsatisfied, nT, nK, nS, djkt, problem):
-
-    logger.info(f'\nScaled Objective {problem} Solution = {Model.obj()} ')
-    excel_writer(nT, nK, nS, djkt, Model, problem)
-    logger.info(f"Solutions Considering Objective {problem}:")
-    logger.info(f"Scaled Result of min cost obj only: {(Model.obj_mincost() - min1) * scaling_factor_mincost}")
-    logger.info(f"Scaled Result of min unsatisfied demand obj only: {(Model.obj_unsatisfied() - min2) * scaling_factor_unsatisfied} ")
-
+def scaled_terminal_writer(Model, min1, min4, scaling_factor_mincost, scaling_factor_unsatisfied, nT, nK, nS, djkt, problem):
+    print(f'\nScaled Objective {problem} Solution = ', Model.obj())
+    #excel_writer(nT, nK, nS, djkt, Model, problem)
+    print(" ")
+    print(f"Solutions Considering Objective {problem}:")
+    print("Scaled Result of min cost obj only: ", (Model.obj_mincost() - min1) * scaling_factor_mincost)
+    print("Scaled Result of min unsatisfied demand obj only: ", (Model.obj_unsatisfied() - min4) * scaling_factor_unsatisfied)
+    print(" ")
+    print(" ************ ")
 
 
 
